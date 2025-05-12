@@ -36,7 +36,6 @@ API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
 ID_UNIDADE = 4158
 KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
-# Função para enviar logs para o WhatsApp via CallMeBot
 def enviar_log_whatsapp(mensagem):
     try:
         msg_formatada = requests.utils.quote(mensagem)
@@ -49,7 +48,6 @@ def enviar_log_whatsapp(mensagem):
     except Exception as e:
         print("❌ Erro ao enviar log para WhatsApp:", str(e))
 
-# Obter token de unidade apenas uma vez
 def obter_token_unidade():
     try:
         resposta = requests.get(API_URL + f"{ID_UNIDADE}", auth=HTTPBasicAuth(KEY, ""))
@@ -173,6 +171,7 @@ def webhook():
 
         mensagem = (
             f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
+            f"📦 *Plano adquirido:* {plano_assinatura}\n\n"
             "*Seu acesso:*\n"
             f"Login: *{cpf}*\n"
             "Senha: *123456*\n\n"
