@@ -16,6 +16,9 @@ CHATPRO_TOKEN = "566fa7beb56fc88e10a0176bbd27f639"
 CHATPRO_INSTANCIA = "chatpro-xcpvtq83bk"
 CHATPRO_URL = f"https://v5.chatpro.com.br/{CHATPRO_INSTANCIA}/api/v1/send_message"
 
+CALLMEBOT_APIKEY = "2712587"
+CALLMEBOT_PHONE = "556186660241"
+
 MAPEAMENTO_CURSOS = {
     "Excel PRO": [161, 197, 201],
     "Design Gráfico": [254, 751, 169],
@@ -33,6 +36,19 @@ API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
 ID_UNIDADE = 4158
 KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
+# Função para enviar logs para o WhatsApp via CallMeBot
+def enviar_log_whatsapp(mensagem):
+    try:
+        msg_formatada = requests.utils.quote(mensagem)
+        url = f"https://api.callmebot.com/whatsapp.php?phone={CALLMEBOT_PHONE}&text={msg_formatada}&apikey={CALLMEBOT_APIKEY}"
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            print("✅ Log enviado ao WhatsApp com sucesso.")
+        else:
+            print("❌ Falha ao enviar log para WhatsApp:", resp.text)
+    except Exception as e:
+        print("❌ Erro ao enviar log para WhatsApp:", str(e))
+
 # Obter token de unidade apenas uma vez
 def obter_token_unidade():
     try:
@@ -41,8 +57,10 @@ def obter_token_unidade():
         if dados.get("status") == "true":
             return dados.get("data")["token"]
         print("❌ Erro ao obter token:", dados)
+        enviar_log_whatsapp(f"❌ Erro ao obter token da unidade: {dados}")
     except Exception as e:
         print("❌ Exceção ao obter token:", str(e))
+        enviar_log_whatsapp(f"❌ Exceção ao obter token: {str(e)}")
     return None
 
 TOKEN_UNIDADE = obter_token_unidade()
@@ -119,12 +137,16 @@ def webhook():
         print("📨 Resposta completa do cadastro:", aluno_response)
 
         if not resp_cadastro.ok or aluno_response.get("status") != "true":
-            print("❌ Erro no cadastro do aluno:", resp_cadastro.text)
+            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}"
+            print(erro_msg)
+            enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
 
         aluno_id = aluno_response.get("data", {}).get("id")
         if not aluno_id:
-            print("❌ ID do aluno não retornado!")
+            erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}"
+            print(erro_msg)
+            enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
 
         print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
@@ -142,7 +164,9 @@ def webhook():
         )
 
         if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
-            print("❌ Erro na matrícula:", resp_matricula.text)
+            erro_msg = f"❌ ERRO NA MATRÍCULA: {resp_matricula.text}\nAluno ID: {aluno_id}, Cursos: {cursos_ids}"
+            print(erro_msg)
+            enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
         print(f"🎓 Matrícula realizada com sucesso nos cursos: {cursos_ids}")
@@ -185,7 +209,9 @@ def webhook():
         }), 200
 
     except Exception as e:
-        print("❌ Exceção no processamento do webhook:", str(e))
+        erro_msg = f"❌ EXCEÇÃO NO PROCESSAMENTO: {str(e)}"
+        print(erro_msg)
+        enviar_log_whatsapp(erro_msg)
         return jsonify({"error": "Erro interno no servidor", "detalhes": str(e)}), 500
 
 if __name__ == '__main__':
