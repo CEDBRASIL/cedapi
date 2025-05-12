@@ -135,14 +135,14 @@ def webhook():
         print("📨 Resposta completa do cadastro:", aluno_response)
 
         if not resp_cadastro.ok or aluno_response.get("status") != "true":
-            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}"
+            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}, Celular: {celular}"
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
 
         aluno_id = aluno_response.get("data", {}).get("id")
         if not aluno_id:
-            erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}"
+            erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}, Celular: {celular}"
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
@@ -162,13 +162,14 @@ def webhook():
         )
 
         if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
-            erro_msg = f"❌ ERRO NA MATRÍCULA: {resp_matricula.text}\nAluno ID: {aluno_id}, Cursos: {cursos_ids}"
+            erro_msg = f"❌ ERRO NA MATRÍCULA: {resp_matricula.text}\nAluno ID: {aluno_id}, Cursos: {cursos_ids}, Celular: {celular}"
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
         print(f"🎓 Matrícula realizada com sucesso nos cursos: {cursos_ids}")
 
+        # Mensagem de boas-vindas para o aluno
         mensagem = (
             f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
             f"📦 *Plano adquirido:* {plano_assinatura}\n\n"
@@ -202,7 +203,7 @@ def webhook():
             print("✅ Mensagem enviada com sucesso")
 
         return jsonify({
-            "message": "Aluno cadastrado, matriculado e notificado com sucesso!",
+            "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
             "aluno_id": aluno_id,
             "cursos": cursos_ids
         }), 200
