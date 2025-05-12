@@ -7,17 +7,15 @@ app = Flask(__name__)
 
 # CONFIGURAÇÕES FIXAS
 OURO_BASE_URL = "https://meuappdecursos.com.br/ws/v2"
-
 BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
-
 SUPORTE_WHATSAPP = "61981969018"
 DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
-TOKEN_UNIDADE = ""
+
 CHATPRO_TOKEN = "566fa7beb56fc88e10a0176bbd27f639"
 CHATPRO_INSTANCIA = "chatpro-xcpvtq83bk"
 CHATPRO_URL = f"https://v5.chatpro.com.br/{CHATPRO_INSTANCIA}/api/v1/send_message"
 
-MAPEAMENTO_CURSOS = {  
+MAPEAMENTO_CURSOS = {
     "Excel PRO": [161, 197, 201],
     "Design Gráfico": [254, 751, 169],
     "Analista de Tecnologia da Informação (TI)": [590, 176, 239, 203],
@@ -34,17 +32,21 @@ API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
 ID_UNIDADE = 4158
 KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
+# Obter token de unidade apenas uma vez
 def obter_token_unidade():
-    resposta = requests.get(API_URL+f"{ID_UNIDADE}", auth=HTTPBasicAuth(KEY, ""))
-    dados = resposta.json()
-    if dados.get("status") == "true":
-        return dados.get("data")["token"]
-    print("Erro ao obter token:", dados)
+    try:
+        resposta = requests.get(API_URL + f"{ID_UNIDADE}", auth=HTTPBasicAuth(KEY, ""))
+        dados = resposta.json()
+        if dados.get("status") == "true":
+            return dados.get("data")["token"]
+        print("❌ Erro ao obter token:", dados)
+    except Exception as e:
+        print("❌ Exceção ao obter token:", str(e))
     return None
 
-if obter_token_unidade():
-    TOKEN_UNIDADE = obter_token_unidade()
-    print("Token obtido com sucesso:", TOKEN_UNIDADE)
+TOKEN_UNIDADE = obter_token_unidade()
+if not TOKEN_UNIDADE:
+    raise Exception("Token da unidade não pôde ser obtido. Verifique as credenciais.")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
