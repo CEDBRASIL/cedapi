@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 from requests.auth import HTTPBasicAuth
 import datetime
+import os
 
 app = Flask(__name__)
 
@@ -48,7 +49,6 @@ TOKEN_UNIDADE = obter_token_unidade()
 if not TOKEN_UNIDADE:
     raise Exception("Token da unidade não pôde ser obtido. Verifique as credenciais.")
 
-# 👇 LOG DA URL RECEBIDA
 @app.before_request
 def log_request_info():
     print("\n📥 Requisição recebida:")
@@ -184,4 +184,5 @@ def webhook():
     }), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
