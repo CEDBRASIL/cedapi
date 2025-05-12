@@ -72,6 +72,10 @@ def log_request_info():
     print("📍 Método:", request.method)
     print("📦 Cabeçalhos:", dict(request.headers))
 
+@app.route('/secure')
+def secure_check():
+    return jsonify({"status": "online", "message": "API do CED está ativa."}), 200
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
