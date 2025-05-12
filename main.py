@@ -94,10 +94,6 @@ def webhook():
         complemento = customer.get("complement") or ""
         cep = customer.get("zipcode") or ""
 
-        print("\n📋 Dados do cliente recebidos:")
-        print(f"👤 Nome: {nome}\n📧 Email: {email}\n📱 Celular: {celular}\n📄 CPF: {cpf}")
-        print(f"🏩 Cidade: {cidade}\n🏡 Endereço: {endereco}\n🪩 Bairro: {bairro}\n📦 Complemento: {complemento}\n📬 CEP: {cep}\n🌍 Estado: {estado}")
-
         plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
         print(f"📦 Plano de assinatura: {plano_assinatura}")
 
@@ -162,14 +158,30 @@ def webhook():
         )
 
         if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
-            erro_msg = f"❌ ERRO NA MATRÍCULA: {resp_matricula.text}\nAluno ID: {aluno_id}, Cursos: {cursos_ids}, Celular: {celular}"
+            erro_msg = (
+                f"❌ ERRO NA MATRÍCULA\n"
+                f"Aluno ID: {aluno_id}\n"
+                f"👤 Nome: {nome}\n"
+                f"📄 CPF: {cpf}\n"
+                f"📱 Celular: {celular}\n"
+                f"🎓 Cursos: {cursos_ids}\n"
+                f"🔧 Detalhes: {resp_matricula.text}"
+            )
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        print(f"🎓 Matrícula realizada com sucesso nos cursos: {cursos_ids}")
+        # ✅ Enviar log de matrícula realizada com sucesso
+        msg_matricula = (
+            f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
+            f"👤 Nome: {nome}\n"
+            f"📄 CPF: {cpf}\n"
+            f"📱 Celular: {celular}\n"
+            f"🎓 Cursos: {cursos_ids}"
+        )
+        print(msg_matricula)
+        enviar_log_whatsapp(msg_matricula)
 
-        # Mensagem de boas-vindas para o aluno
         mensagem = (
             f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
             f"📦 *Plano adquirido:* {plano_assinatura}\n\n"
