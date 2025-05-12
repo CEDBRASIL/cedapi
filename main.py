@@ -48,6 +48,14 @@ TOKEN_UNIDADE = obter_token_unidade()
 if not TOKEN_UNIDADE:
     raise Exception("Token da unidade não pôde ser obtido. Verifique as credenciais.")
 
+# 👇 LOG DA URL RECEBIDA
+@app.before_request
+def log_request_info():
+    print("\n📥 Requisição recebida:")
+    print("🔗 URL completa:", request.url)
+    print("📍 Método:", request.method)
+    print("📦 Cabeçalhos:", dict(request.headers))
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     print("\n🔔 Webhook recebido com sucesso")
