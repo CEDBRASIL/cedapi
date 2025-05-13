@@ -96,35 +96,50 @@ def webhook():
         cep = customer.get("zipcode") or ""
 
         # 🚫 CASO DE REEMBOLSO
-        if evento == "refund":
-            print(f"🔁 Evento de reembolso detectado para CPF: {cpf}")
-            resp_busca = requests.get(
-                f"{OURO_BASE_URL}/alunos?cpf={cpf}",
-                headers={"Authorization": f"Basic {BASIC_AUTH}"}
-            )
-            resultado = resp_busca.json()
-            if resultado.get("status") != "true" or not resultado.get("data"):
-                msg = f"⚠️ Aluno com CPF {cpf} não encontrado para exclusão"
-                print(msg)
-                enviar_log_whatsapp(msg)
-                return jsonify({"message": msg}), 200
+if evento == "refund":
+    print(f"🔁 Evento de reembolso detectado para CPF: {cpf}")
+    enviar_log_whatsapp(f"🔁 Reembolso solicitado\n👤 Nome: {nome}\n📄 CPF: {cpf}")
 
-            aluno_id = resultado["data"][0]["id"]
-            resp_delete = requests.delete(
-                f"{OURO_BASE_URL}/alunos/{aluno_id}",
-                headers={"Authorization": f"Basic {BASIC_AUTH}"}
-            )
+    # 1. Buscar aluno pelo CPF
+    resp_busca = requests.get(
+        f"{OURO_BASE_URL}/alunos?cpf={cpf}",
+        headers={"Authorization": f"Basic {BASIC_AUTH}"}
+    )
+    resultado = resp_busca.json()
+    print("🔍 Resultado da busca:", resultado)
+    enviar_log_whatsapp(f"🔍 Resultado da busca:\n{resultado}")
 
-            if resp_delete.status_code == 200:
-                msg = f"✅ Aluno {nome} (CPF: {cpf}) excluído com sucesso após reembolso"
-                print(msg)
-                enviar_log_whatsapp(msg)
-                return jsonify({"message": msg}), 200
-            else:
-                erro_msg = f"❌ Falha ao excluir aluno {nome} (CPF: {cpf}): {resp_delete.text}"
-                print(erro_msg)
-                enviar_log_whatsapp(erro_msg)
-                return jsonify({"error": "Erro ao excluir aluno", "detalhes": resp_delete.text}), 500
+    if resultado.get("status") != "true" or not resultado.get("data"):
+        msg = f"⚠️ Aluno com CPF {cpf} não encontrado para exclusão"
+        print(msg)
+        enviar_log_whatsapp(msg)
+        return jsonify({"message": msg}), 200
+
+    aluno_id = resultado["data"][0]["id"]
+    print(f"🎯 Aluno encontrado. ID: {aluno_id}")
+
+    # 2. Excluir aluno
+    resp_delete = requests.delete(
+        f"{OURO_BASE_URL}/alunos/{aluno_id}",
+        headers={"Authorization": f"Basic {BASIC_AUTH}"}
+    )
+
+    if resp_delete.status_code == 200:
+        msg = f"✅ Aluno {nome} (CPF: {cpf}) excluído com sucesso após reembolso"
+        print(msg)
+        enviar_log_whatsapp(msg)
+        return jsonify({"message": msg}), 200
+    else:
+        erro_msg = (
+            f"❌ Falha ao excluir aluno\n"
+            f"👤 Nome: {nome}\n"
+            f"📄 CPF: {cpf}\n"
+            f"🔧 Resposta: {resp_delete.text}"
+        )
+        print(erro_msg)
+        enviar_log_whatsapp(erro_msg)
+        return jsonify({"error": "Erro ao excluir aluno", "detalhes": resp_delete.text}), 500
+
 
         # 🚫 IGNORA EVENTOS NÃO SUPORTADOS
         if evento != "order_approved":
