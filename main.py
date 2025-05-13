@@ -1,3 +1,13 @@
+rembolso
+assinatura atrasada
+assinatura cancelada
+assinatura renovada
+
+primeiro vamos focar no rembolso.
+
+Quando um aluno querer rembolsar, quero que a conta dele seja excluida. usa oq esta na documentação
+agora edita o codigo pra mim, e me manda o codigo final.
+
 from flask import Flask, request, jsonify
 import requests
 from requests.auth import HTTPBasicAuth
@@ -28,8 +38,8 @@ MAPEAMENTO_CURSOS = {
     "Operador de Micro": [130, 599, 161, 160, 162],
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
-    "teste": [161, 201],
-    "Example plan": [161, 201]
+    "teste": [161, 201, 263],
+    "Example plan": [161, 201, 263]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
@@ -81,69 +91,24 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
-        order = payload.get("order", {})
-        evento = order.get("webhook_event_type")
+        evento = payload.get("webhook_event_type")
 
-        customer = order.get("Customer", {})
+        if evento != "order_approved":
+            return jsonify({"message": "Evento ignorado"}), 200
+
+        customer = payload.get("Customer", {})
         nome = customer.get("full_name")
         cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
         email = customer.get("email")
         celular = customer.get("mobile") or "(00) 00000-0000"
-        cidade = customer.get("city", "")
-        estado = customer.get("state", "")
-        endereco = customer.get("street", "") + ", " + str(customer.get("number", ""))
-        bairro = customer.get("neighborhood", "")
-        complemento = customer.get("complement", "")
-        cep = customer.get("zipcode", "")
+        cidade = customer.get("city") or ""
+        estado = customer.get("state") or ""
+        endereco = (customer.get("street") or "") + ", " + str(customer.get("number") or "")
+        bairro = customer.get("neighborhood") or ""
+        complemento = customer.get("complement") or ""
+        cep = customer.get("zipcode") or ""
 
-        # ✅ EVENTO DE REEMBOLSO
-        if evento == "order_refunded":
-            print(f"🔁 Evento de reembolso detectado para CPF: {cpf}")
-            enviar_log_whatsapp(f"🔁 Reembolso confirmado\n👤 Nome: {nome}\n📄 CPF: {cpf}")
-
-            resp_busca = requests.get(
-                f"{OURO_BASE_URL}/alunos?cpf={cpf}",
-                headers={"Authorization": f"Basic {BASIC_AUTH}"}
-            )
-            resultado = resp_busca.json()
-            print("🔍 Resultado da busca:", resultado)
-            enviar_log_whatsapp(f"🔍 Busca do aluno:\n{resultado}")
-
-            if resultado.get("status") != "true" or not resultado.get("data"):
-                msg = f"⚠️ Aluno com CPF {cpf} não encontrado para exclusão"
-                print(msg)
-                enviar_log_whatsapp(msg)
-                return jsonify({"message": msg}), 200
-
-            aluno_id = resultado["data"][0]["id"]
-            print(f"🎯 Aluno encontrado. ID: {aluno_id}")
-
-            resp_delete = requests.delete(
-                f"{OURO_BASE_URL}/alunos/{aluno_id}",
-                headers={"Authorization": f"Basic {BASIC_AUTH}"}
-            )
-
-            if resp_delete.status_code == 200:
-                msg = f"✅ Aluno {nome} (CPF: {cpf}) excluído após reembolso"
-                print(msg)
-                enviar_log_whatsapp(msg)
-                return jsonify({"message": msg}), 200
-            else:
-                erro_msg = (
-                    f"❌ Erro ao excluir aluno\n"
-                    f"👤 Nome: {nome}\n"
-                    f"📄 CPF: {cpf}\n"
-                    f"🔧 Detalhes: {resp_delete.text}"
-                )
-                print(erro_msg)
-                enviar_log_whatsapp(erro_msg)
-                return jsonify({"error": "Erro ao excluir aluno", "detalhes": resp_delete.text}), 500
-
-        # EVENTO PADRÃO DE COMPRA APROVADA
-        if evento != "order_approved":
-            return jsonify({"message": "Evento ignorado"}), 200
-
-        plano_assinatura = order.get("Subscription", {}).get("plan", {}).get("name")
+        plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
         print(f"📦 Plano de assinatura: {plano_assinatura}")
 
         cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
@@ -180,17 +145,17 @@ def webhook():
         print("📨 Resposta completa do cadastro:", aluno_response)
 
         if not resp_cadastro.ok or aluno_response.get("status") != "true":
-            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}"
+            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}, Celular: {celular}"
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
 
         aluno_id = aluno_response.get("data", {}).get("id")
         if not aluno_id:
-            erro_msg = f"❌ ID do aluno não retornado! CPF: {cpf}"
+            erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}, Celular: {celular}"
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
-            return jsonify({"error": "ID do aluno não encontrado."}), 500
+            return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
 
         print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
 
@@ -199,7 +164,7 @@ def webhook():
             "cursos": ",".join(str(curso_id) for curso_id in cursos_ids)
         }
 
-        print(f"📨 Dados para matrícula: {dados_matricula}")
+        print(f"📨 Dados para matrícula do aluno {aluno_id}: {dados_matricula}")
         resp_matricula = requests.post(
             f"{OURO_BASE_URL}/alunos/matricula/{aluno_id}",
             data=dados_matricula,
@@ -208,13 +173,26 @@ def webhook():
 
         if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
             erro_msg = (
-                f"❌ ERRO NA MATRÍCULA\nAluno ID: {aluno_id}\nCPF: {cpf}\nDetalhes: {resp_matricula.text}"
+                f"❌ ERRO NA MATRÍCULA\n"
+                f"Aluno ID: {aluno_id}\n"
+                f"👤 Nome: {nome}\n"
+                f"📄 CPF: {cpf}\n"
+                f"📱 Celular: {celular}\n"
+                f"🎓 Cursos: {cursos_ids}\n"
+                f"🔧 Detalhes: {resp_matricula.text}"
             )
             print(erro_msg)
             enviar_log_whatsapp(erro_msg)
-            return jsonify({"error": "Falha na matrícula", "detalhes": resp_matricula.text}), 500
+            return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        msg_matricula = f"✅ MATRÍCULA CONCLUÍDA\nNome: {nome}\nCPF: {cpf}\nCursos: {cursos_ids}"
+        # ✅ Enviar log de matrícula realizada com sucesso
+        msg_matricula = (
+            f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
+            f"👤 Nome: {nome}\n"
+            f"📄 CPF: {cpf}\n"
+            f"📱 Celular: {celular}\n"
+            f"🎓 Cursos: {cursos_ids}"
+        )
         print(msg_matricula)
         enviar_log_whatsapp(msg_matricula)
 
@@ -225,7 +203,7 @@ def webhook():
             f"Login: *{cpf}*\n"
             "Senha: *123456*\n\n"
             "🌐 *Portal do aluno:* https://ead.cedbrasilia.com.br\n"
-            "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app\n"
+            "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app&hl=pt_BR\n"
             "📱 *App iOS:* https://apps.apple.com/br/app/meu-app-de-cursos/id1581898914\n\n"
             f"📞 *Suporte:* {SUPORTE_WHATSAPP}"
         )
@@ -234,7 +212,10 @@ def webhook():
         print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
         resp_whatsapp = requests.post(
             CHATPRO_URL,
-            json={"number": numero_whatsapp, "message": mensagem},
+            json={
+                "number": numero_whatsapp,
+                "message": mensagem
+            },
             headers={
                 "Authorization": CHATPRO_TOKEN,
                 "Content-Type": "application/json",
@@ -248,7 +229,7 @@ def webhook():
             print("✅ Mensagem enviada com sucesso")
 
         return jsonify({
-            "message": "Aluno cadastrado, matriculado e notificado com sucesso!",
+            "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
             "aluno_id": aluno_id,
             "cursos": cursos_ids
         }), 200
@@ -257,7 +238,7 @@ def webhook():
         erro_msg = f"❌ EXCEÇÃO NO PROCESSAMENTO: {str(e)}"
         print(erro_msg)
         enviar_log_whatsapp(erro_msg)
-        return jsonify({"error": "Erro interno", "detalhes": str(e)}), 500
+        return jsonify({"error": "Erro interno no servidor", "detalhes": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
