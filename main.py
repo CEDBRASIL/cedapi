@@ -81,18 +81,12 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
-        order = payload.get("order", {})
-        evento = order.get("webhook_event_type", "sem_evento")
-        cpf_log = order.get("Customer", {}).get("CPF", "sem CPF")
-
-        # LOG DE TODOS OS EVENTOS
-        enviar_log_whatsapp(f"📩 Evento recebido\nTipo: {evento}\nCPF: {cpf_log}")
+        evento = payload.get("webhook_event_type")
 
         if evento != "order_approved":
-            print(f"📭 Evento '{evento}' não tratado. Ignorando.")
-            return jsonify({"message": f"Evento '{evento}' ignorado"}), 200
+            return jsonify({"message": "Evento ignorado"}), 200
 
-        customer = order.get("Customer", {})
+        customer = payload.get("Customer", {})
         nome = customer.get("full_name")
         cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
         email = customer.get("email")
@@ -104,7 +98,7 @@ def webhook():
         complemento = customer.get("complement") or ""
         cep = customer.get("zipcode") or ""
 
-        plano_assinatura = order.get("Subscription", {}).get("plan", {}).get("name")
+        plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
         print(f"📦 Plano de assinatura: {plano_assinatura}")
 
         cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
@@ -181,6 +175,7 @@ def webhook():
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
+        # ✅ Enviar log de matrícula realizada com sucesso
         msg_matricula = (
             f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
             f"👤 Nome: {nome}\n"
@@ -207,7 +202,10 @@ def webhook():
         print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
         resp_whatsapp = requests.post(
             CHATPRO_URL,
-            json={"number": numero_whatsapp, "message": mensagem},
+            json={
+                "number": numero_whatsapp,
+                "message": mensagem
+            },
             headers={
                 "Authorization": CHATPRO_TOKEN,
                 "Content-Type": "application/json",
@@ -221,7 +219,7 @@ def webhook():
             print("✅ Mensagem enviada com sucesso")
 
         return jsonify({
-            "message": "Aluno cadastrado, matriculado e notificado com sucesso!",
+            "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
             "aluno_id": aluno_id,
             "cursos": cursos_ids
         }), 200
