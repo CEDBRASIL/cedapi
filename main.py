@@ -17,7 +17,7 @@ CHATPRO_INSTANCIA = "chatpro-xcpvtq83bk"
 CHATPRO_URL = f"https://v5.chatpro.com.br/{CHATPRO_INSTANCIA}/api/v1/send_message"
 
 CALLMEBOT_APIKEY = "2712587"
-CALLMEBOT_PHONE = "5561986660241"
+CALLMEBOT_PHONE = "556186660241"
 
 MAPEAMENTO_CURSOS = {
     "Excel PRO": [161, 197, 201],
@@ -28,8 +28,8 @@ MAPEAMENTO_CURSOS = {
     "Operador de Micro": [130, 599, 161, 160, 162],
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
-    "teste": [161, 201, 263],
-    "Example plan": [161, 201, 263]
+    "teste": [161, 201],
+    "Example plan": [161, 201]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
