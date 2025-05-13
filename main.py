@@ -68,22 +68,19 @@ def log_request_info():
 
 @app.route('/secure', methods=['GET', 'HEAD'])
 def secure_check():
-    return '', 200
+    return 'deu certo boy', 200
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
-        print("\n🔔 Webhook recebido com sucesso")
-        payload = request.json
-
-        # 📩 REGISTRO COMPLETO DO JSON RECEBIDO
-        enviar_log_whatsapp(f"📨 Webhook recebido:\n{payload}")
-
-        order = payload.get("order", {})
-        evento = order.get("webhook_event_type")
-
-        if evento != "order_approved":
-            return jsonify({"message": f"Evento '{evento}' ignorado"}), 200
+        raw_data = request.data.decode("utf-8")
+        print(f"🧾 RAW RECEBIDO:\n{raw_data}")
+        enviar_log_whatsapp(f"🧾 RAW recebido:\n{raw_data[:3500]}")
+        
+        payload = request.get_json(force=True, silent=True)
+        if not payload:
+            enviar_log_whatsapp("❌ JSON payload vazio ou inválido!")
+            return jsonify({"error": "JSON inválido"}), 400
 
         customer = order.get("Customer", {})
         nome = customer.get("full_name")
