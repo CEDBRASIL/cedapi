@@ -1,13 +1,3 @@
-rembolso
-assinatura atrasada
-assinatura cancelada
-assinatura renovada
-
-primeiro vamos focar no rembolso.
-
-Quando um aluno querer rembolsar, quero que a conta dele seja excluida. usa oq esta na documentação
-agora edita o codigo pra mim, e me manda o codigo final.
-
 from flask import Flask, request, jsonify
 import requests
 from requests.auth import HTTPBasicAuth
