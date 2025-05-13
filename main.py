@@ -82,10 +82,15 @@ def webhook():
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
         order = payload.get("order", {})
-        evento = order.get("webhook_event_type")
+        evento = order.get("webhook_event_type", "sem_evento")
+        cpf_log = order.get("Customer", {}).get("CPF", "sem CPF")
+
+        # LOG DE TODOS OS EVENTOS
+        enviar_log_whatsapp(f"📩 Evento recebido\nTipo: {evento}\nCPF: {cpf_log}")
 
         if evento != "order_approved":
-            return jsonify({"message": "Evento ignorado"}), 200
+            print(f"📭 Evento '{evento}' não tratado. Ignorando.")
+            return jsonify({"message": f"Evento '{evento}' ignorado"}), 200
 
         customer = order.get("Customer", {})
         nome = customer.get("full_name")
@@ -202,10 +207,7 @@ def webhook():
         print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
         resp_whatsapp = requests.post(
             CHATPRO_URL,
-            json={
-                "number": numero_whatsapp,
-                "message": mensagem
-            },
+            json={"number": numero_whatsapp, "message": mensagem},
             headers={
                 "Authorization": CHATPRO_TOKEN,
                 "Content-Type": "application/json",
@@ -219,7 +221,7 @@ def webhook():
             print("✅ Mensagem enviada com sucesso")
 
         return jsonify({
-            "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
+            "message": "Aluno cadastrado, matriculado e notificado com sucesso!",
             "aluno_id": aluno_id,
             "cursos": cursos_ids
         }), 200
