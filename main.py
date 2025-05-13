@@ -16,9 +16,6 @@ CHATPRO_TOKEN = "566fa7beb56fc88e10a0176bbd27f639"
 CHATPRO_INSTANCIA = "chatpro-xcpvtq83bk"
 CHATPRO_URL = f"https://v5.chatpro.com.br/{CHATPRO_INSTANCIA}/api/v1/send_message"
 
-CALLMEBOT_APIKEY = "2712587"
-CALLMEBOT_PHONE = "556186660241"
-
 MAPEAMENTO_CURSOS = {
     "Excel PRO": [161, 197, 201],
     "Design Gráfico": [254, 751, 169],
@@ -37,16 +34,7 @@ ID_UNIDADE = 4158
 KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
 def enviar_log_whatsapp(mensagem):
-    try:
-        msg_formatada = requests.utils.quote(mensagem)
-        url = f"https://api.callmebot.com/whatsapp.php?phone={CALLMEBOT_PHONE}&text={msg_formatada}&apikey={CALLMEBOT_APIKEY}"
-        resp = requests.get(url)
-        if resp.status_code == 200:
-            print("✅ Log enviado ao WhatsApp com sucesso.")
-        else:
-            print("❌ Falha ao enviar log para WhatsApp:", resp.text)
-    except Exception as e:
-        print("❌ Erro ao enviar log para WhatsApp:", str(e))
+    print(f"LOG: {mensagem}")  # Apenas imprime no console
 
 def obter_token_unidade():
     try:
@@ -175,7 +163,6 @@ def webhook():
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        # ✅ Enviar log de matrícula realizada com sucesso
         msg_matricula = (
             f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
             f"👤 Nome: {nome}\n"
