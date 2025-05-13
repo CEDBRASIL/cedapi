@@ -81,12 +81,13 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
-        evento = payload.get("webhook_event_type")
+        order = payload.get("order", {})
+        evento = order.get("webhook_event_type")
 
         if evento != "order_approved":
             return jsonify({"message": "Evento ignorado"}), 200
 
-        customer = payload.get("Customer", {})
+        customer = order.get("Customer", {})
         nome = customer.get("full_name")
         cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
         email = customer.get("email")
@@ -98,7 +99,7 @@ def webhook():
         complemento = customer.get("complement") or ""
         cep = customer.get("zipcode") or ""
 
-        plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
+        plano_assinatura = order.get("Subscription", {}).get("plan", {}).get("name")
         print(f"📦 Plano de assinatura: {plano_assinatura}")
 
         cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
@@ -175,7 +176,6 @@ def webhook():
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        # ✅ Enviar log de matrícula realizada com sucesso
         msg_matricula = (
             f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
             f"👤 Nome: {nome}\n"
