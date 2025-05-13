@@ -25,9 +25,9 @@ MAPEAMENTO_CURSOS = {
     "Analista de Tecnologia da Informação (TI)": [590, 176, 239, 203],
     "Administração": [129, 198, 156, 154],
     "Inglês Fluente": [263, 280, 281],
-    "Operador de Micro": [130, 599, 161, 160, 162],
-    "Inteligência Artificial": [619, 734, 836],
-    "Marketing Digital": [734, 236, 441, 199, 780],
+    "Operador de Micro": [333, 334, 335],
+    "Inteligência Artificial": [600, 601, 602],
+    "Marketing Digital": [555, 556, 557],
     "teste": [161, 201],
     "Example plan": [161, 201]
 }
@@ -38,9 +38,13 @@ KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
 def enviar_log_whatsapp(mensagem):
     try:
-        msg_formatada = requests.utils.quote(str(mensagem)[:4000])  # máximo permitido
+        msg_formatada = requests.utils.quote(mensagem)
         url = f"https://api.callmebot.com/whatsapp.php?phone={CALLMEBOT_PHONE}&text={msg_formatada}&apikey={CALLMEBOT_APIKEY}"
-        requests.get(url)
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            print("✅ Log enviado ao WhatsApp com sucesso.")
+        else:
+            print("❌ Falha ao enviar log para WhatsApp:", resp.text)
     except Exception as e:
         print("❌ Erro ao enviar log para WhatsApp:", str(e))
 
@@ -50,8 +54,10 @@ def obter_token_unidade():
         dados = resposta.json()
         if dados.get("status") == "true":
             return dados.get("data")["token"]
-        enviar_log_whatsapp(f"❌ Erro ao obter token: {dados}")
+        print("❌ Erro ao obter token:", dados)
+        enviar_log_whatsapp(f"❌ Erro ao obter token da unidade: {dados}")
     except Exception as e:
+        print("❌ Exceção ao obter token:", str(e))
         enviar_log_whatsapp(f"❌ Exceção ao obter token: {str(e)}")
     return None
 
@@ -68,21 +74,19 @@ def log_request_info():
 
 @app.route('/secure', methods=['GET', 'HEAD'])
 def secure_check():
-    return 'deu certo boy', 200
+    return '', 200
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
-        raw_data = request.data.decode("utf-8")
-        print(f"🧾 RAW RECEBIDO:\n{raw_data}")
-        enviar_log_whatsapp(f"🧾 RAW recebido:\n{raw_data[:3500]}")
-        
-        payload = request.get_json(force=True, silent=True)
-        if not payload:
-            enviar_log_whatsapp("❌ JSON payload vazio ou inválido!")
-            return jsonify({"error": "JSON inválido"}), 400
+        print("\n🔔 Webhook recebido com sucesso")
+        payload = request.json
+        evento = payload.get("webhook_event_type")
 
-        customer = order.get("Customer", {})
+        if evento != "order_approved":
+            return jsonify({"message": "Evento ignorado"}), 200
+
+        customer = payload.get("Customer", {})
         nome = customer.get("full_name")
         cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
         email = customer.get("email")
@@ -94,9 +98,10 @@ def webhook():
         complemento = customer.get("complement") or ""
         cep = customer.get("zipcode") or ""
 
-        plano_assinatura = order.get("Subscription", {}).get("plan", {}).get("name")
-        cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
+        plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
+        print(f"📦 Plano de assinatura: {plano_assinatura}")
 
+        cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
         if not cursos_ids:
             return jsonify({"error": f"Plano '{plano_assinatura}' não mapeado."}), 400
 
@@ -119,6 +124,7 @@ def webhook():
             "cep": cep
         }
 
+        print("📨 Enviando dados do aluno para a API de cadastro...")
         resp_cadastro = requests.post(
             f"{OURO_BASE_URL}/alunos",
             data=dados_aluno,
@@ -126,22 +132,29 @@ def webhook():
         )
 
         aluno_response = resp_cadastro.json()
+        print("📨 Resposta completa do cadastro:", aluno_response)
+
         if not resp_cadastro.ok or aluno_response.get("status") != "true":
-            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}"
+            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}, Celular: {celular}"
+            print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
 
         aluno_id = aluno_response.get("data", {}).get("id")
         if not aluno_id:
-            erro_msg = f"❌ ID do aluno não retornado! CPF: {cpf}"
+            erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}, Celular: {celular}"
+            print(erro_msg)
             enviar_log_whatsapp(erro_msg)
-            return jsonify({"error": "ID do aluno não encontrado."}), 500
+            return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
+
+        print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
 
         dados_matricula = {
             "token": TOKEN_UNIDADE,
             "cursos": ",".join(str(curso_id) for curso_id in cursos_ids)
         }
 
+        print(f"📨 Dados para matrícula do aluno {aluno_id}: {dados_matricula}")
         resp_matricula = requests.post(
             f"{OURO_BASE_URL}/alunos/matricula/{aluno_id}",
             data=dados_matricula,
@@ -149,11 +162,29 @@ def webhook():
         )
 
         if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
-            erro_msg = f"❌ ERRO NA MATRÍCULA do aluno {nome}, CPF: {cpf}, cursos: {cursos_ids}"
+            erro_msg = (
+                f"❌ ERRO NA MATRÍCULA\n"
+                f"Aluno ID: {aluno_id}\n"
+                f"👤 Nome: {nome}\n"
+                f"📄 CPF: {cpf}\n"
+                f"📱 Celular: {celular}\n"
+                f"🎓 Cursos: {cursos_ids}\n"
+                f"🔧 Detalhes: {resp_matricula.text}"
+            )
+            print(erro_msg)
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        enviar_log_whatsapp(f"✅ MATRÍCULA OK: {nome} - CPF: {cpf}")
+        # ✅ Enviar log de matrícula realizada com sucesso
+        msg_matricula = (
+            f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
+            f"👤 Nome: {nome}\n"
+            f"📄 CPF: {cpf}\n"
+            f"📱 Celular: {celular}\n"
+            f"🎓 Cursos: {cursos_ids}"
+        )
+        print(msg_matricula)
+        enviar_log_whatsapp(msg_matricula)
 
         mensagem = (
             f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
@@ -162,15 +193,19 @@ def webhook():
             f"Login: *{cpf}*\n"
             "Senha: *123456*\n\n"
             "🌐 *Portal do aluno:* https://ead.cedbrasilia.com.br\n"
-            "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app\n"
+            "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app&hl=pt_BR\n"
             "📱 *App iOS:* https://apps.apple.com/br/app/meu-app-de-cursos/id1581898914\n\n"
             f"📞 *Suporte:* {SUPORTE_WHATSAPP}"
         )
 
         numero_whatsapp = "55" + ''.join(filter(str.isdigit, celular))[-11:]
+        print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
         resp_whatsapp = requests.post(
             CHATPRO_URL,
-            json={"number": numero_whatsapp, "message": mensagem},
+            json={
+                "number": numero_whatsapp,
+                "message": mensagem
+            },
             headers={
                 "Authorization": CHATPRO_TOKEN,
                 "Content-Type": "application/json",
@@ -179,10 +214,12 @@ def webhook():
         )
 
         if resp_whatsapp.status_code != 200:
-            enviar_log_whatsapp(f"❌ Erro ao enviar WhatsApp: {resp_whatsapp.text}")
+            print("❌ Erro ao enviar WhatsApp:", resp_whatsapp.text)
+        else:
+            print("✅ Mensagem enviada com sucesso")
 
         return jsonify({
-            "message": "Aluno cadastrado, matriculado e notificado com sucesso!",
+            "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
             "aluno_id": aluno_id,
             "cursos": cursos_ids
         }), 200
