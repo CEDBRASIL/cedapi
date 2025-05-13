@@ -198,7 +198,7 @@ def webhook():
             f"📞 *Suporte:* {SUPORTE_WHATSAPP}"
         )
 
-        numero_whatsapp = "" + ''.join(filter(str.isdigit, celular))[-11:]
+        numero_whatsapp = "55" + ''.join(filter(str.isdigit, celular))[-11:]
         print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
         resp_whatsapp = requests.post(
             CHATPRO_URL,
