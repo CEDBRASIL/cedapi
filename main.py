@@ -81,24 +81,25 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
-        evento = payload.get("webhook_event_type")
+        order = payload.get("order", {})
+        evento = order.get("webhook_event_type")
 
-        customer = payload.get("Customer", {})
+        customer = order.get("Customer", {})
         nome = customer.get("full_name")
         cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
         email = customer.get("email")
         celular = customer.get("mobile") or "(00) 00000-0000"
-        cidade = customer.get("city") or ""
-        estado = customer.get("state") or ""
-        endereco = (customer.get("street") or "") + ", " + str(customer.get("number") or "")
-        bairro = customer.get("neighborhood") or ""
-        complemento = customer.get("complement") or ""
-        cep = customer.get("zipcode") or ""
+        cidade = customer.get("city", "")
+        estado = customer.get("state", "")
+        endereco = customer.get("street", "") + ", " + str(customer.get("number", ""))
+        bairro = customer.get("neighborhood", "")
+        complemento = customer.get("complement", "")
+        cep = customer.get("zipcode", "")
 
-        # 🚫 EVENTO DE REEMBOLSO
-        if evento == "refund":
+        # ✅ EVENTO DE REEMBOLSO
+        if evento == "order_refunded":
             print(f"🔁 Evento de reembolso detectado para CPF: {cpf}")
-            enviar_log_whatsapp(f"🔁 Reembolso solicitado\n👤 Nome: {nome}\n📄 CPF: {cpf}")
+            enviar_log_whatsapp(f"🔁 Reembolso confirmado\n👤 Nome: {nome}\n📄 CPF: {cpf}")
 
             resp_busca = requests.get(
                 f"{OURO_BASE_URL}/alunos?cpf={cpf}",
@@ -106,7 +107,7 @@ def webhook():
             )
             resultado = resp_busca.json()
             print("🔍 Resultado da busca:", resultado)
-            enviar_log_whatsapp(f"🔍 Resultado da busca:\n{resultado}")
+            enviar_log_whatsapp(f"🔍 Busca do aluno:\n{resultado}")
 
             if resultado.get("status") != "true" or not resultado.get("data"):
                 msg = f"⚠️ Aluno com CPF {cpf} não encontrado para exclusão"
@@ -123,27 +124,26 @@ def webhook():
             )
 
             if resp_delete.status_code == 200:
-                msg = f"✅ Aluno {nome} (CPF: {cpf}) excluído com sucesso após reembolso"
+                msg = f"✅ Aluno {nome} (CPF: {cpf}) excluído após reembolso"
                 print(msg)
                 enviar_log_whatsapp(msg)
                 return jsonify({"message": msg}), 200
             else:
                 erro_msg = (
-                    f"❌ Falha ao excluir aluno\n"
+                    f"❌ Erro ao excluir aluno\n"
                     f"👤 Nome: {nome}\n"
                     f"📄 CPF: {cpf}\n"
-                    f"🔧 Resposta: {resp_delete.text}"
+                    f"🔧 Detalhes: {resp_delete.text}"
                 )
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
                 return jsonify({"error": "Erro ao excluir aluno", "detalhes": resp_delete.text}), 500
 
-        # Ignora outros eventos (exceto order_approved)
+        # EVENTO PADRÃO DE COMPRA APROVADA
         if evento != "order_approved":
             return jsonify({"message": "Evento ignorado"}), 200
 
-        # PROCESSAMENTO NORMAL DE MATRÍCULA
-        plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
+        plano_assinatura = order.get("Subscription", {}).get("plan", {}).get("name")
         print(f"📦 Plano de assinatura: {plano_assinatura}")
 
         cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
