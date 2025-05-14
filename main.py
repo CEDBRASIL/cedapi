@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # CONFIGURAÇÕES FIXAS
 OURO_BASE_URL = "https://meuappdecursos.com.br/ws/v2"
-BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
+BASIC_AUTH = "e6fc583511b1b88c34bd2a2610248a8c"
 SUPORTE_WHATSAPP = "61981969018"
 DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
 
@@ -34,7 +34,7 @@ MAPEAMENTO_CURSOS = {
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
 ID_UNIDADE = 4158
-KEY = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
+KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
 def enviar_log_whatsapp(mensagem):
     try:
