@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # CONFIGURAÇÕES FIXAS
 OURO_BASE_URL = "https://meuappdecursos.com.br/ws/v2"
-BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YdmQyYTI2MTAyNDhhOGM6"
+BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
 SUPORTE_WHATSAPP = "61981969018"
 DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
 
@@ -72,6 +72,51 @@ def log_request_info():
     print("📍 Método:", request.method)
     print("📦 Cabeçalhos:", dict(request.headers))
 
+def buscar_aluno_por_cpf(cpf):
+    try:
+        resp = requests.get(
+            f"{OURO_BASE_URL}/alunos",
+            params={"cpf": cpf},
+            headers={"Authorization": f"Basic {BASIC_AUTH}"}
+        )
+        data = resp.json()
+        if data.get("status") == "true" and data.get("data"):
+            return data["data"][0]  # Assume o primeiro resultado
+    except Exception as e:
+        print(f"❌ Erro ao buscar aluno por CPF: {e}")
+    return None
+
+def deletar_aluno(aluno_id):
+    try:
+        resp = requests.delete(
+            f"{OURO_BASE_URL}/alunos/{aluno_id}",
+            params={"token": TOKEN_UNIDADE},
+            headers={"Authorization": f"Basic {BASIC_AUTH}"}
+        )
+        print(f"🗑️ Resposta ao deletar aluno {aluno_id}: {resp.text}")
+        return resp.ok
+    except Exception as e:
+        print(f"❌ Erro ao deletar aluno: {e}")
+    return False
+
+def atualizar_status_aluno(aluno_id, nome, status):
+    # status: "ativo" ou "inativo"
+    try:
+        resp = requests.post(
+            f"{OURO_BASE_URL}/alunos/{aluno_id}",
+            data={
+                "token": TOKEN_UNIDADE,
+                "nome": nome,
+                "situacao": status
+            },
+            headers={"Authorization": f"Basic {BASIC_AUTH}"}
+        )
+        print(f"🔄 Resposta ao atualizar status do aluno {aluno_id}: {resp.text}")
+        return resp.ok
+    except Exception as e:
+        print(f"❌ Erro ao atualizar status do aluno: {e}")
+    return False
+
 @app.route('/secure', methods=['GET', 'HEAD'])
 def secure_check():
     return '', 200
@@ -81,7 +126,64 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
-        evento = payload.get("webhook_event_type")
+        evento = payload.get("webhook_event_type") or payload.get("order", {}).get("webhook_event_type")
+
+        # Eventos de rembolso/cancelamento/atraso/renovação
+        if evento in ["order_refunded", "subscription_canceled", "subscription_late", "subscription_renewed"]:
+            # Suporte a ambos formatos de payload (direto ou dentro de "order")
+            customer = payload.get("Customer") or payload.get("order", {}).get("Customer", {})
+            cpf = (customer.get("CPF") or customer.get("cpf") or "").replace(".", "").replace("-", "")
+            nome = customer.get("full_name") or customer.get("fullName") or ""
+            print(f"🔎 Buscando aluno para evento {evento} - CPF: {cpf}")
+
+            aluno = buscar_aluno_por_cpf(cpf)
+            if not aluno:
+                msg = f"❌ Aluno não encontrado para CPF {cpf} no evento {evento}"
+                print(msg)
+                enviar_log_whatsapp(msg)
+                return jsonify({"error": msg}), 404
+
+            aluno_id = aluno.get("id")
+            aluno_nome = aluno.get("nome", nome)
+
+            if evento == "order_refunded" or evento == "subscription_canceled":
+                # Deletar aluno
+                if deletar_aluno(aluno_id):
+                    msg = f"🗑️ Aluno deletado devido a evento '{evento}': {aluno_nome} (ID: {aluno_id}, CPF: {cpf})"
+                    print(msg)
+                    enviar_log_whatsapp(msg)
+                    return jsonify({"message": msg}), 200
+                else:
+                    msg = f"❌ Falha ao deletar aluno {aluno_nome} (ID: {aluno_id}) para evento '{evento}'"
+                    print(msg)
+                    enviar_log_whatsapp(msg)
+                    return jsonify({"error": msg}), 500
+
+            elif evento == "subscription_late":
+                # Bloquear/inativar aluno
+                if atualizar_status_aluno(aluno_id, aluno_nome, "inativo"):
+                    msg = f"⏸️ Aluno inativado por atraso: {aluno_nome} (ID: {aluno_id}, CPF: {cpf})"
+                    print(msg)
+                    enviar_log_whatsapp(msg)
+                    return jsonify({"message": msg}), 200
+                else:
+                    msg = f"❌ Falha ao inativar aluno {aluno_nome} (ID: {aluno_id})"
+                    print(msg)
+                    enviar_log_whatsapp(msg)
+                    return jsonify({"error": msg}), 500
+
+            elif evento == "subscription_renewed":
+                # Reativar aluno
+                if atualizar_status_aluno(aluno_id, aluno_nome, "ativo"):
+                    msg = f"✅ Aluno reativado por renovação: {aluno_nome} (ID: {aluno_id}, CPF: {cpf})"
+                    print(msg)
+                    enviar_log_whatsapp(msg)
+                    return jsonify({"message": msg}), 200
+                else:
+                    msg = f"❌ Falha ao reativar aluno {aluno_nome} (ID: {aluno_id})"
+                    print(msg)
+                    enviar_log_whatsapp(msg)
+                    return jsonify({"error": msg}), 500
 
         if evento != "order_approved":
             return jsonify({"message": "Evento ignorado"}), 200
