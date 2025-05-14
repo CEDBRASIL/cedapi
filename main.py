@@ -34,7 +34,7 @@ MAPEAMENTO_CURSOS = {
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
 ID_UNIDADE = 4158
-KEY = "e6fc583511b1b88c34bd2a2610248a8c"
+KEY = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
 
 def enviar_log_whatsapp(mensagem):
     try:
