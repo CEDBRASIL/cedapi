@@ -139,20 +139,23 @@ def webhook():
         # Eventos que podem vir na raiz
         eventos_raiz = ["subscription_late", "subscription_renewed"]
 
+        customer = None
         if evento in eventos_order:
             order = payload.get("order", {})
             customer = order.get("Customer", {})
-            cpf = (customer.get("CPF") or customer.get("cpf") or "").replace(".", "").replace("-", "")
-            nome = customer.get("full_name") or customer.get("fullName") or ""
-            print(f"🔎 [order] Evento: {evento} | CPF extraído: '{cpf}' | Nome: '{nome}'")
         elif evento in eventos_raiz:
             customer = payload.get("Customer", {})
-            cpf = (customer.get("CPF") or customer.get("cpf") or "").replace(".", "").replace("-", "")
-            nome = customer.get("full_name") or customer.get("fullName") or ""
-            print(f"🔎 [raiz] Evento: {evento} | CPF extraído: '{cpf}' | Nome: '{nome}'")
-        else:
-            # Se não for nenhum evento esperado, ignora
-            return jsonify({"message": "Evento ignorado"}), 200
+
+        if not customer:
+            msg = f"❌ Bloco 'Customer' não encontrado no payload para evento {evento}."
+            print(msg)
+            enviar_log_whatsapp(msg)
+            return jsonify({"error": msg}), 400
+
+        # Garante que o CPF e o nome sejam extraídos corretamente
+        cpf = (customer.get("CPF") or customer.get("cpf") or "").replace(".", "").replace("-", "")
+        nome = customer.get("full_name") or customer.get("fullName") or ""
+        print(f"🔎 Evento: {evento} | CPF extraído: '{cpf}' | Nome: '{nome}'")
 
         if not cpf:
             msg = f"❌ CPF não encontrado no payload para evento {evento}. Customer: {customer}"
