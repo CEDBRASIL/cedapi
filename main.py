@@ -8,7 +8,6 @@ app = Flask(__name__)
 
 # CONFIGURAÇÕES FIXAS
 OURO_BASE_URL = "https://meuappdecursos.com.br/ws/v2"
-BASIC_AUTH = "e6fc583511b1b88c34bd2a2610248a8c"
 SUPORTE_WHATSAPP = "61981969018"
 DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
 
@@ -128,7 +127,7 @@ def webhook():
         resp_cadastro = requests.post(
             f"{OURO_BASE_URL}/alunos",
             data=dados_aluno,
-            headers={"Authorization": f"Basic {BASIC_AUTH}"}
+            auth=HTTPBasicAuth(KEY, "")
         )
 
         aluno_response = resp_cadastro.json()
@@ -158,7 +157,7 @@ def webhook():
         resp_matricula = requests.post(
             f"{OURO_BASE_URL}/alunos/matricula/{aluno_id}",
             data=dados_matricula,
-            headers={"Authorization": f"Basic {BASIC_AUTH}"}
+            auth=HTTPBasicAuth(KEY, "")
         )
 
         if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
@@ -175,7 +174,6 @@ def webhook():
             enviar_log_whatsapp(erro_msg)
             return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        # ✅ Enviar log de matrícula realizada com sucesso
         msg_matricula = (
             f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
             f"👤 Nome: {nome}\n"
