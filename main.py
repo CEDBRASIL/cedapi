@@ -126,12 +126,22 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
-        evento = payload.get("webhook_event_type") or payload.get("order", {}).get("webhook_event_type")
+
+        # Corrige a detecção do evento para payloads vindos de Kiwify (eventos podem estar em order)
+        evento = (
+            payload.get("webhook_event_type")
+            or (payload.get("order") or {}).get("webhook_event_type")
+        )
 
         # Eventos de rembolso/cancelamento/atraso/renovação
         if evento in ["order_refunded", "subscription_canceled", "subscription_late", "subscription_renewed"]:
-            # Suporte a ambos formatos de payload (direto ou dentro de "order")
-            customer = payload.get("Customer") or payload.get("order", {}).get("Customer", {})
+            # Extrai o bloco correto de dados do cliente
+            if "order" in payload:
+                customer = payload["order"].get("Customer", {})
+            else:
+                customer = payload.get("Customer", {})
+
+            # Garante que o CPF seja extraído corretamente
             cpf = (customer.get("CPF") or customer.get("cpf") or "").replace(".", "").replace("-", "")
             nome = customer.get("full_name") or customer.get("fullName") or ""
             print(f"🔎 Buscando aluno para evento {evento} - CPF: {cpf}")
