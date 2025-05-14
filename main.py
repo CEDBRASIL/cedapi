@@ -126,27 +126,33 @@ def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
+        print("📦 Payload recebido:", payload)
 
-        # Corrige a detecção do evento para payloads vindos de Kiwify (eventos podem estar em order)
         evento = (
             payload.get("webhook_event_type")
             or (payload.get("order") or {}).get("webhook_event_type")
         )
+        print(f"📝 Evento detectado: {evento}")
 
-        # Eventos de rembolso/cancelamento/atraso/renovação
         if evento in ["order_refunded", "subscription_canceled", "subscription_late", "subscription_renewed"]:
-            # Extrai o bloco correto de dados do cliente
             if "order" in payload:
                 customer = payload["order"].get("Customer", {})
             else:
                 customer = payload.get("Customer", {})
 
-            # Garante que o CPF seja extraído corretamente
             cpf = (customer.get("CPF") or customer.get("cpf") or "").replace(".", "").replace("-", "")
             nome = customer.get("full_name") or customer.get("fullName") or ""
-            print(f"🔎 Buscando aluno para evento {evento} - CPF: {cpf}")
+            print(f"🔎 Buscando aluno para evento {evento} - CPF extraído: '{cpf}' Nome: '{nome}'")
+
+            if not cpf:
+                msg = f"❌ CPF não encontrado no payload para evento {evento}. Customer: {customer}"
+                print(msg)
+                enviar_log_whatsapp(msg)
+                return jsonify({"error": msg}), 400
 
             aluno = buscar_aluno_por_cpf(cpf)
+            print(f"🔍 Resultado da busca do aluno: {aluno}")
+
             if not aluno:
                 msg = f"❌ Aluno não encontrado para CPF {cpf} no evento {evento}"
                 print(msg)
@@ -157,7 +163,6 @@ def webhook():
             aluno_nome = aluno.get("nome", nome)
 
             if evento == "order_refunded" or evento == "subscription_canceled":
-                # Deletar aluno
                 if deletar_aluno(aluno_id):
                     msg = f"🗑️ Aluno deletado devido a evento '{evento}': {aluno_nome} (ID: {aluno_id}, CPF: {cpf})"
                     print(msg)
@@ -170,7 +175,6 @@ def webhook():
                     return jsonify({"error": msg}), 500
 
             elif evento == "subscription_late":
-                # Bloquear/inativar aluno
                 if atualizar_status_aluno(aluno_id, aluno_nome, "inativo"):
                     msg = f"⏸️ Aluno inativado por atraso: {aluno_nome} (ID: {aluno_id}, CPF: {cpf})"
                     print(msg)
@@ -183,7 +187,6 @@ def webhook():
                     return jsonify({"error": msg}), 500
 
             elif evento == "subscription_renewed":
-                # Reativar aluno
                 if atualizar_status_aluno(aluno_id, aluno_nome, "ativo"):
                     msg = f"✅ Aluno reativado por renovação: {aluno_nome} (ID: {aluno_id}, CPF: {cpf})"
                     print(msg)
