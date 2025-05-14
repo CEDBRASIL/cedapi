@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # CONFIGURAÇÕES FIXAS
 OURO_BASE_URL = "https://meuappdecursos.com.br/ws/v2"
-BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
+BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YdmQyYTI2MTAyNDhhOGM6"
 SUPORTE_WHATSAPP = "61981969018"
 DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
 
