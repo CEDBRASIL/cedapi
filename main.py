@@ -29,7 +29,8 @@ MAPEAMENTO_CURSOS = {
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
     "teste": [161, 201],
-    "Example plan": [161, 201]
+    "Example plan": [161, 201],
+    "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
