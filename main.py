@@ -153,6 +153,14 @@ def webhook():
 
             print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
 
+            # Store aluno_id for later use (e.g., deletion during refund)
+            # This could be a database or in-memory storage, depending on the system design
+            # For now, we assume a simple in-memory dictionary (global variable)
+            global ALUNOS_CACHE
+            if 'ALUNOS_CACHE' not in globals():
+                ALUNOS_CACHE = {}
+            ALUNOS_CACHE[cpf] = aluno_id
+
             dados_matricula = {
                 "token": TOKEN_UNIDADE,
                 "cursos": ",".join(str(curso_id) for curso_id in cursos_ids)
@@ -184,7 +192,8 @@ def webhook():
                 f"👤 Nome: {nome}\n"
                 f"📄 CPF: {cpf}\n"
                 f"📱 Celular: {celular}\n"
-                f"🎓 Cursos: {cursos_ids}"
+                f"🎓 Cursos: {cursos_ids}\n"
+                f"🆔 ID do Aluno: {aluno_id}"
             )
             print(msg_matricula)
             enviar_log_whatsapp(msg_matricula)
@@ -198,6 +207,7 @@ def webhook():
                 "🌐 *Portal do aluno:* https://ead.cedbrasilia.com.br\n"
                 "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app&hl=pt_BR\n"
                 "📱 *App iOS:* https://apps.apple.com/br/app/meu-app-de-cursos/id1581898914\n\n"
+                f"🆔 *ID do Aluno:* {aluno_id}\n"
                 f"📞 *Suporte:* {SUPORTE_WHATSAPP}"
             )
 
@@ -228,13 +238,21 @@ def webhook():
             }), 200
 
         elif evento == "order_refunded":
-            # Extração do aluno_id
-            aluno_id = payload.get("order", {}).get("aluno_id")
-            if not aluno_id:
-                print("❌ ID do aluno não fornecido para o evento de reembolso.")
-                return jsonify({"error": "ID do aluno não fornecido para o evento de reembolso."}), 400
+            # Extração do CPF do cliente
+            cpf = payload.get("order", {}).get("Customer", {}).get("CPF")
+            if not cpf:
+                print("❌ CPF do cliente não fornecido para o evento de reembolso.")
+                return jsonify({"error": "CPF do cliente não fornecido para o evento de reembolso."}), 400
 
-            print(f"🔄 Processando reembolso para o ID do aluno: {aluno_id}")
+            print(f"🔄 Processando reembolso para o CPF do cliente: {cpf}")
+
+            # Retrieve aluno_id from cache
+            aluno_id = ALUNOS_CACHE.get(cpf)
+            if not aluno_id:
+                erro_msg = f"❌ ID do aluno não encontrado para o CPF: {cpf}"
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                return jsonify({"error": "ID do aluno não encontrado."}), 400
 
             # Enviar requisição para deletar a conta do aluno
             try:
