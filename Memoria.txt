@@ -7,9 +7,10 @@ Contém:
   - `enviar_log_whatsapp(msg)`: Envia mensagens de log via CallMeBot para WhatsApp do suporte.
 - Rotas:
   - `/secure`: Verificação simples de funcionamento.
-  - `/webhook`: Endpoint principal para receber notificações de venda aprovadas da Kiwify e realizar:
+  - `/webhook`: Endpoint principal para receber notificações de venda aprovadas e reembolsos da Kiwify e realizar:
     - Cadastro do aluno no EAD.
     - Matrícula nos cursos conforme o plano adquirido.
+    - Exclusão da conta do aluno em caso de reembolso.
     - Envio de mensagem de boas-vindas via WhatsApp usando ChatPro.
 
 Finalidade: Gerenciar toda a lógica de integração com a Kiwify e os sistemas externos (EAD, ChatPro, CallMeBot), garantindo a automação dos processos após a venda.
@@ -36,4 +37,173 @@ Finalidade: Facilitar testes manuais e compreensão da API por desenvolvedores e
 
 ---
 
-Observação: A integração foi construída com foco na automação total do fluxo de venda e matrícula via webhook da Kiwify, considerando validação de token, mapeamento de cursos e comunicação com o aluno via WhatsApp.
+Evento de reembolso (order_refunded):  
+O evento de reembolso é identificado pelo campo `"webhook_event_type": "order_refunded"`.  
+Quando este evento é recebido, o sistema:
+- Extrai o CPF do cliente do campo `"Customer"`.
+- Envia uma requisição DELETE para a API do sistema EAD para excluir a conta do aluno.
+- Registra logs de sucesso ou erro e notifica via WhatsApp em caso de falha.
+
+Exemplo de payload do evento de reembolso:
+```json
+{
+    "url": "https://cedapi.onrender.com/webhook",
+    "signature": "dc879496348ff586aa103c9f8dbad29a8b438edb",
+    "order": {
+        "order_id": "be786abe-297f-42a8-a8c1-6e6d2b091ef3",
+        "order_status": "refunded",
+        "webhook_event_type": "order_refunded",
+        "Customer": {
+            "full_name": "Yuri Rodrigues de Sousa",
+            "CPF": "10539354120"
+        }
+    }
+}
+```
+
+---
+
+main.py  
+Arquivo principal da aplicação Flask responsável por processar os eventos do webhook da Kiwify e executar ações como cadastro e matrícula de alunos.  
+Contém:  
+- Configurações fixas: URLs da API do sistema EAD, autenticação Basic, instância e token do ChatPro, dados da CallMeBot e mapeamento de planos para cursos.  
+- Funções auxiliares:
+  - `obter_token_unidade()`: Obtém o token da unidade via API utilizando autenticação básica.
+  - `enviar_log_whatsapp(msg)`: Envia mensagens de log via CallMeBot para WhatsApp do suporte.
+- Rotas:
+  - `/secure`: Verificação simples de funcionamento.
+  - `/webhook`: Endpoint principal para receber notificações de venda aprovadas e reembolsos da Kiwify e realizar:
+    - Cadastro do aluno no EAD.
+    - Matrícula nos cursos conforme o plano adquirido.
+    - Exclusão da conta do aluno em caso de reembolso.
+    - Envio de mensagem de boas-vindas via WhatsApp usando ChatPro.
+
+Finalidade: Gerenciar toda a lógica de integração com a Kiwify e os sistemas externos (EAD, ChatPro, CallMeBot), garantindo a automação dos processos após a venda.
+
+---
+
+mainquefunciona.py  
+Este arquivo é o main.py porem ele funciona normalmente!  
+
+Finalidade: Backup ou versão de contingência para garantir funcionamento do sistema.
+
+---
+
+API Ouro Moderno - EAD - Versão 2.0.postman_collection.json  
+Coleção de requisições Postman para testes e documentação da API do sistema EAD.  
+Inclui:
+- Endpoints de autenticação.
+- Cadastro de aluno.
+- Matrícula.
+- Consultas de unidades e alunos.
+- Cabeçalhos e bodies prontos para envio.
+
+Finalidade: Facilitar testes manuais e compreensão da API por desenvolvedores e integradores.
+
+---
+
+Evento de reembolso (order_refunded):  
+O evento de reembolso é identificado pelo campo `"webhook_event_type": "order_refunded"`.  
+Quando este evento é recebido, o sistema:
+- Extrai o CPF do cliente do campo `"Customer"`.
+- Envia uma requisição DELETE para a API do sistema EAD para excluir a conta do aluno.
+- Registra logs de sucesso ou erro e notifica via WhatsApp em caso de falha.
+
+Exemplo de payload do evento de reembolso:
+```json
+{
+    "url": "https://cedapi.onrender.com/webhook",
+    "signature": "dc879496348ff586aa103c9f8dbad29a8b438edb",
+    "order": {
+        "order_id": "be786abe-297f-42a8-a8c1-6e6d2b091ef3",
+        "order_status": "refunded",
+        "webhook_event_type": "order_refunded",
+        "Customer": {
+            "full_name": "Yuri Rodrigues de Sousa",
+            "CPF": "10539354120"
+        }
+    }
+}
+```
+
+---
+
+### AI Memory Snapshot (May 17, 2025)
+
+#### TASK DESCRIPTION:
+Integrate a refund handling mechanism in the `main.py` file to delete a student's account based on their CPF when a refund event (`order_refunded`) is received. Ensure the CPF is used to fetch the student's ID via the API and then delete the account using the ID. Debug and resolve any issues causing a 400 error during this process.
+
+#### COMPLETED:
+1. **Initial Setup:**
+   - Created a new file `consulta_aluno.py` with a function `consultar_aluno_por_cpf` to fetch a student's ID using their CPF from the API.
+
+2. **Integration:**
+   - Integrated the `consultar_aluno_por_cpf` function into `main.py` to handle the `order_refunded` event.
+   - Updated the refund logic to:
+     - Extract the CPF from the payload.
+     - Use the CPF to fetch the student's ID via the `consultar_aluno_por_cpf` function.
+     - Delete the student's account using the fetched ID.
+
+3. **Debugging:**
+   - Verified that there are no syntax or linting errors in `main.py` and `consulta_aluno.py`.
+   - Investigated the 400 error by reviewing the payload structure in `evento rembolso.json` and the API documentation in `API Ouro Moderno - EAD - Versão 2.0.postman_collection.json`.
+
+4. **Payload Validation:**
+   - Confirmed that the refund payload contains the CPF under `payload["order"]["Customer"]["CPF"]`.
+
+5. **Logging Enhancements:**
+   - Added detailed error messages and logs for debugging API responses during the refund process.
+
+#### PENDING:
+1. **Error Resolution:**
+   - Investigate and resolve the 400 error during the refund process. This may involve validating the API endpoint, headers, or payload structure.
+2. **Testing:**
+   - Test the refund logic end-to-end to ensure the student's account is deleted successfully upon receiving a refund event.
+3. **Documentation Review:**
+   - Confirm the API's expected parameters and response structure for the `GET /alunos` and `DELETE /alunos/{id}` endpoints.
+
+#### CODE STATE:
+- **Files Discussed or Modified:**
+  - `main.py`: Contains the webhook logic for handling events like `order_approved` and `order_refunded`.
+  - `consulta_aluno.py`: Contains the function `consultar_aluno_por_cpf` to fetch a student's ID using their CPF.
+  - `evento rembolso.json`: Contains the payload structure for the `order_refunded` event.
+  - `API Ouro Moderno - EAD - Versão 2.0.postman_collection.json`: API documentation for endpoints.
+
+#### CHANGES:
+1. **New File Created:**
+   - `consulta_aluno.py`:
+     - Function `consultar_aluno_por_cpf` added to fetch a student's ID using their CPF.
+
+2. **Edits in `main.py`:**
+   - Integrated `consultar_aluno_por_cpf` to handle the `order_refunded` event.
+   - Updated refund logic to:
+     - Extract CPF from the payload.
+     - Fetch the student's ID using the CPF.
+     - Delete the student's account using the fetched ID.
+
+   **Code Snippet:**
+   ```python
+   aluno = consultar_aluno_por_cpf(cpf)
+   if not aluno or not aluno.get("id"):
+       erro_msg = f"❌ ID do aluno não encontrado para o CPF: {cpf}"
+       print(erro_msg)
+       enviar_log_whatsapp(erro_msg)
+       return jsonify({"error": "ID do aluno não encontrado."}), 400
+
+   aluno_id = aluno["id"]
+   resp_deletar = requests.delete(
+       f"{OURO_BASE_URL}/alunos/{aluno_id}",
+       headers={"Authorization": f"Basic {BASIC_AUTH}"}
+   )
+   ```
+
+3. **Logging Improvements:**
+   - Added logs to capture errors and responses during the refund process.
+
+---
+
+### User Preference Update
+- Automatically update memory whenever the user sends new information or context.
+
+### User Update
+- User plans to create a Discord bot to assist with logging and debugging.
