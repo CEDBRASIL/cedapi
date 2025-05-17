@@ -4,6 +4,7 @@ from requests.auth import HTTPBasicAuth
 import datetime
 import os
 from consulta_aluno import consultar_aluno_por_cpf
+import json
 
 app = Flask(__name__)
 
@@ -52,6 +53,19 @@ def enviar_log_whatsapp(mensagem):
     except Exception as e:
         print("❌ Erro ao enviar log para WhatsApp:", str(e))
 
+def enviar_log_discord(mensagem):
+    webhook_url = "https://discord.com/api/webhooks/1373265105298653235/DwNCh-rD99gqJUuSnrwFW12cDEdAcn8H7SP4kucgc_He9ZZaqHNWmGO_qD_PZdf-U5Rq"
+    try:
+        payload = {"content": mensagem}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(webhook_url, data=json.dumps(payload), headers=headers)
+        if response.status_code == 204:
+            print("✅ Log enviado ao Discord com sucesso.")
+        else:
+            print(f"❌ Falha ao enviar log para Discord: {response.status_code}, {response.text}")
+    except Exception as e:
+        print(f"❌ Erro ao enviar log para Discord: {str(e)}")
+
 def obter_token_unidade():
     global TOKEN_UNIDADE
     try:
@@ -73,10 +87,9 @@ obter_token_unidade()
 
 @app.before_request
 def log_request_info():
-    print("\n📥 Requisição recebida:")
-    print("🔗 URL completa:", request.url)
-    print("📍 Método:", request.method)
-    print("📦 Cabeçalhos:", dict(request.headers))
+    mensagem = f"\n📥 Requisição recebida:\n🔗 URL completa: {request.url}\n📍 Método: {request.method}\n📦 Cabeçalhos: {dict(request.headers)}"
+    print(mensagem)
+    enviar_log_discord(mensagem)
 
 @app.route('/secure', methods=['GET', 'HEAD'])
 def secure_check():
@@ -143,6 +156,7 @@ def webhook():
                 erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}, Celular: {celular}"
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
                 return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
 
             aluno_id = aluno_response.get("data", {}).get("id")
@@ -150,6 +164,7 @@ def webhook():
                 erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}, Celular: {celular}"
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
                 return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
 
             print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
@@ -186,6 +201,7 @@ def webhook():
                 )
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
                 return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
             msg_matricula = (
@@ -198,6 +214,7 @@ def webhook():
             )
             print(msg_matricula)
             enviar_log_whatsapp(msg_matricula)
+            enviar_log_discord(msg_matricula)
 
             mensagem = (
                 f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
@@ -253,6 +270,7 @@ def webhook():
                 erro_msg = f"❌ ID do aluno não encontrado para o CPF: {cpf}"
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
                 return jsonify({"error": "ID do aluno não encontrado."}), 400
 
             aluno_id = aluno["id"]
@@ -268,6 +286,7 @@ def webhook():
                     erro_msg = f"❌ ERRO AO DELETAR CONTA: {resp_deletar.text}\nID do aluno: {aluno_id}"
                     print(erro_msg)
                     enviar_log_whatsapp(erro_msg)
+                    enviar_log_discord(erro_msg)
                     return jsonify({"error": "Falha ao deletar conta do aluno", "detalhes": resp_deletar.text}), 500
 
                 print(f"✅ Conta do aluno com ID {aluno_id} deletada com sucesso.")
@@ -277,6 +296,7 @@ def webhook():
                 erro_msg = f"❌ EXCEÇÃO AO DELETAR CONTA: {str(e)}\nID do aluno: {aluno_id}"
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
                 return jsonify({"error": "Erro interno ao deletar conta", "detalhes": str(e)}), 500
 
         else:
@@ -288,6 +308,7 @@ def webhook():
         erro_msg = f"❌ EXCEÇÃO NO PROCESSAMENTO: {str(e)}"
         print(erro_msg)
         enviar_log_whatsapp(erro_msg)
+        enviar_log_discord(erro_msg)
         return jsonify({"error": "Erro interno no servidor", "detalhes": str(e)}), 500
 
 if __name__ == '__main__':
