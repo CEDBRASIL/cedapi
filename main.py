@@ -3,6 +3,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import datetime
 import os
+from consulta_aluno import consultar_aluno_por_cpf
 
 app = Flask(__name__)
 
@@ -246,13 +247,15 @@ def webhook():
 
             print(f"🔄 Processando reembolso para o CPF do cliente: {cpf}")
 
-            # Retrieve aluno_id from cache
-            aluno_id = ALUNOS_CACHE.get(cpf)
-            if not aluno_id:
+            # Consultar o ID do aluno com base no CPF
+            aluno = consultar_aluno_por_cpf(cpf)
+            if not aluno or not aluno.get("id"):
                 erro_msg = f"❌ ID do aluno não encontrado para o CPF: {cpf}"
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
                 return jsonify({"error": "ID do aluno não encontrado."}), 400
+
+            aluno_id = aluno["id"]
 
             # Enviar requisição para deletar a conta do aluno
             try:
