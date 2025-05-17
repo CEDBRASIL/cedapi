@@ -28,7 +28,7 @@ MAPEAMENTO_CURSOS = {
     "Operador de Micro": [130, 599, 161, 160, 162],
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
-    "teste": [130, 599, 163, 160, 161, 162, 222],
+    "teste": [161, 201],
     "Example plan": [161, 201],
     "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222]
 }
@@ -89,145 +89,170 @@ def webhook():
         payload = request.json
         evento = payload.get("webhook_event_type")
 
-        if evento != "order_approved":
-            return jsonify({"message": "Evento ignorado"}), 200
+        if evento == "order_approved":
+            customer = payload.get("Customer", {})
+            nome = customer.get("full_name")
+            cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
+            email = customer.get("email")
+            celular = customer.get("mobile") or "(00) 00000-0000"
+            cidade = customer.get("city") or ""
+            estado = customer.get("state") or ""
+            endereco = (customer.get("street") or "") + ", " + str(customer.get("number") or "")
+            bairro = customer.get("neighborhood") or ""
+            complemento = customer.get("complement") or ""
+            cep = customer.get("zipcode") or ""
 
-        customer = payload.get("Customer", {})
-        nome = customer.get("full_name")
-        cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
-        email = customer.get("email")
-        celular = customer.get("mobile") or "(00) 00000-0000"
-        cidade = customer.get("city") or ""
-        estado = customer.get("state") or ""
-        endereco = (customer.get("street") or "") + ", " + str(customer.get("number") or "")
-        bairro = customer.get("neighborhood") or ""
-        complemento = customer.get("complement") or ""
-        cep = customer.get("zipcode") or ""
+            plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
+            print(f"📦 Plano de assinatura: {plano_assinatura}")
 
-        plano_assinatura = payload.get("Subscription", {}).get("plan", {}).get("name")
-        print(f"📦 Plano de assinatura: {plano_assinatura}")
+            cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
+            if not cursos_ids:
+                return jsonify({"error": f"Plano '{plano_assinatura}' não mapeado."}), 400
 
-        cursos_ids = MAPEAMENTO_CURSOS.get(plano_assinatura)
-        if not cursos_ids:
-            return jsonify({"error": f"Plano '{plano_assinatura}' não mapeado."}), 400
+            dados_aluno = {
+                "token": TOKEN_UNIDADE,
+                "nome": nome,
+                "data_nascimento": "2000-01-01",
+                "email": email,
+                "fone": celular,
+                "senha": "123456",
+                "celular": celular,
+                "doc_cpf": cpf,
+                "doc_rg": "00000000000",
+                "pais": "Brasil",
+                "uf": estado,
+                "cidade": cidade,
+                "endereco": endereco,
+                "complemento": complemento,
+                "bairro": bairro,
+                "cep": cep
+            }
 
-        dados_aluno = {
-            "token": TOKEN_UNIDADE,
-            "nome": nome,
-            "data_nascimento": "2000-01-01",
-            "email": email,
-            "fone": celular,
-            "senha": "123456",
-            "celular": celular,
-            "doc_cpf": cpf,
-            "doc_rg": "00000000000",
-            "pais": "Brasil",
-            "uf": estado,
-            "cidade": cidade,
-            "endereco": endereco,
-            "complemento": complemento,
-            "bairro": bairro,
-            "cep": cep
-        }
+            print("📨 Enviando dados do aluno para a API de cadastro...")
+            resp_cadastro = requests.post(
+                f"{OURO_BASE_URL}/alunos",
+                data=dados_aluno,
+                headers={"Authorization": f"Basic {BASIC_AUTH}"}
+            )
 
-        print("📨 Enviando dados do aluno para a API de cadastro...")
-        resp_cadastro = requests.post(
-            f"{OURO_BASE_URL}/alunos",
-            data=dados_aluno,
-            headers={"Authorization": f"Basic {BASIC_AUTH}"}
-        )
+            aluno_response = resp_cadastro.json()
+            print("📨 Resposta completa do cadastro:", aluno_response)
 
-        aluno_response = resp_cadastro.json()
-        print("📨 Resposta completa do cadastro:", aluno_response)
+            if not resp_cadastro.ok or aluno_response.get("status") != "true":
+                erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}, Celular: {celular}"
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
 
-        if not resp_cadastro.ok or aluno_response.get("status") != "true":
-            erro_msg = f"❌ ERRO NO CADASTRO: {resp_cadastro.text}\nAluno: {nome}, CPF: {cpf}, Email: {email}, Celular: {celular}"
-            print(erro_msg)
-            enviar_log_whatsapp(erro_msg)
-            return jsonify({"error": "Falha ao criar aluno", "detalhes": resp_cadastro.text}), 500
+            aluno_id = aluno_response.get("data", {}).get("id")
+            if not aluno_id:
+                erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}, Celular: {celular}"
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
 
-        aluno_id = aluno_response.get("data", {}).get("id")
-        if not aluno_id:
-            erro_msg = f"❌ ID do aluno não retornado!\nAluno: {nome}, CPF: {cpf}, Celular: {celular}"
-            print(erro_msg)
-            enviar_log_whatsapp(erro_msg)
-            return jsonify({"error": "ID do aluno não encontrado na resposta de cadastro."}), 500
+            print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
 
-        print(f"✅ Aluno criado com sucesso. ID: {aluno_id}")
+            dados_matricula = {
+                "token": TOKEN_UNIDADE,
+                "cursos": ",".join(str(curso_id) for curso_id in cursos_ids)
+            }
 
-        dados_matricula = {
-            "token": TOKEN_UNIDADE,
-            "cursos": ",".join(str(curso_id) for curso_id in cursos_ids)
-        }
+            print(f"📨 Dados para matrícula do aluno {aluno_id}: {dados_matricula}")
+            resp_matricula = requests.post(
+                f"{OURO_BASE_URL}/alunos/matricula/{aluno_id}",
+                data=dados_matricula,
+                headers={"Authorization": f"Basic {BASIC_AUTH}"}
+            )
 
-        print(f"📨 Dados para matrícula do aluno {aluno_id}: {dados_matricula}")
-        resp_matricula = requests.post(
-            f"{OURO_BASE_URL}/alunos/matricula/{aluno_id}",
-            data=dados_matricula,
-            headers={"Authorization": f"Basic {BASIC_AUTH}"}
-        )
+            if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
+                erro_msg = (
+                    f"❌ ERRO NA MATRÍCULA\n"
+                    f"Aluno ID: {aluno_id}\n"
+                    f"👤 Nome: {nome}\n"
+                    f"📄 CPF: {cpf}\n"
+                    f"📱 Celular: {celular}\n"
+                    f"🎓 Cursos: {cursos_ids}\n"
+                    f"🔧 Detalhes: {resp_matricula.text}"
+                )
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
 
-        if not resp_matricula.ok or resp_matricula.json().get("status") != "true":
-            erro_msg = (
-                f"❌ ERRO NA MATRÍCULA\n"
-                f"Aluno ID: {aluno_id}\n"
+            msg_matricula = (
+                f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
                 f"👤 Nome: {nome}\n"
                 f"📄 CPF: {cpf}\n"
                 f"📱 Celular: {celular}\n"
-                f"🎓 Cursos: {cursos_ids}\n"
-                f"🔧 Detalhes: {resp_matricula.text}"
+                f"🎓 Cursos: {cursos_ids}"
             )
-            print(erro_msg)
-            enviar_log_whatsapp(erro_msg)
-            return jsonify({"error": "Falha ao matricular", "detalhes": resp_matricula.text}), 500
+            print(msg_matricula)
+            enviar_log_whatsapp(msg_matricula)
 
-        msg_matricula = (
-            f"✅ MATRÍCULA REALIZADA COM SUCESSO\n"
-            f"👤 Nome: {nome}\n"
-            f"📄 CPF: {cpf}\n"
-            f"📱 Celular: {celular}\n"
-            f"🎓 Cursos: {cursos_ids}"
-        )
-        print(msg_matricula)
-        enviar_log_whatsapp(msg_matricula)
+            mensagem = (
+                f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
+                f"📦 *Plano adquirido:* {plano_assinatura}\n\n"
+                "*Seu acesso:*\n"
+                f"Login: *{cpf}*\n"
+                "Senha: *123456*\n\n"
+                "🌐 *Portal do aluno:* https://ead.cedbrasilia.com.br\n"
+                "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app&hl=pt_BR\n"
+                "📱 *App iOS:* https://apps.apple.com/br/app/meu-app-de-cursos/id1581898914\n\n"
+                f"📞 *Suporte:* {SUPORTE_WHATSAPP}"
+            )
 
-        mensagem = (
-            f"Oii {nome}, Seja bem Vindo/a Ao CED BRASIL\n\n"
-            f"📦 *Plano adquirido:* {plano_assinatura}\n\n"
-            "*Seu acesso:*\n"
-            f"Login: *{cpf}*\n"
-            "Senha: *123456*\n\n"
-            "🌐 *Portal do aluno:* https://ead.cedbrasilia.com.br\n"
-            "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app&hl=pt_BR\n"
-            "📱 *App iOS:* https://apps.apple.com/br/app/meu-app-de-cursos/id1581898914\n\n"
-            f"Qualquer Duvida é só perguntar :)"
-        )
+            numero_whatsapp = "55" + ''.join(filter(str.isdigit, celular))[-11:]
+            print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
+            resp_whatsapp = requests.post(
+                CHATPRO_URL,
+                json={
+                    "number": numero_whatsapp,
+                    "message": mensagem
+                },
+                headers={
+                    "Authorization": CHATPRO_TOKEN,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+            )
 
-        numero_whatsapp = "55" + ''.join(filter(str.isdigit, celular))[-11:]
-        print(f"📤 Enviando mensagem via ChatPro para {numero_whatsapp}")
-        resp_whatsapp = requests.post(
-            CHATPRO_URL,
-            json={
-                "number": numero_whatsapp,
-                "message": mensagem
-            },
-            headers={
-                "Authorization": CHATPRO_TOKEN,
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        )
+            if resp_whatsapp.status_code != 200:
+                print("❌ Erro ao enviar WhatsApp:", resp_whatsapp.text)
+            else:
+                print("✅ Mensagem enviada com sucesso")
 
-        if resp_whatsapp.status_code != 200:
-            print("❌ Erro ao enviar WhatsApp:", resp_whatsapp.text)
+            return jsonify({
+                "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
+                "aluno_id": aluno_id,
+                "cursos": cursos_ids
+            }), 200
+
+        elif evento == "order_refunded":
+            customer = payload.get("Customer", {})
+            cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
+            if not cpf:
+                return jsonify({"error": "CPF não fornecido para o evento de reembolso."}), 400
+
+            print(f"🔄 Processando reembolso para o CPF: {cpf}")
+
+            # Enviar requisição para deletar a conta do aluno
+            resp_deletar = requests.delete(
+                f"{OURO_BASE_URL}/alunos/{cpf}",
+                headers={"Authorization": f"Basic {BASIC_AUTH}"}
+            )
+
+            if not resp_deletar.ok:
+                erro_msg = f"❌ ERRO AO DELETAR CONTA: {resp_deletar.text}\nCPF: {cpf}"
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                return jsonify({"error": "Falha ao deletar conta do aluno", "detalhes": resp_deletar.text}), 500
+
+            print(f"✅ Conta do aluno com CPF {cpf} deletada com sucesso.")
+            return jsonify({"message": "Conta do aluno deletada com sucesso."}), 200
+
         else:
-            print("✅ Mensagem enviada com sucesso")
-
-        return jsonify({
-            "message": "Aluno cadastrado, matriculado e notificado com sucesso! Matrícula efetuada com sucesso!",
-            "aluno_id": aluno_id,
-            "cursos": cursos_ids
-        }), 200
+            # Ignorar outros eventos
+            return jsonify({"message": "Evento ignorado"}), 200
 
     except Exception as e:
         erro_msg = f"❌ EXCEÇÃO NO PROCESSAMENTO: {str(e)}"

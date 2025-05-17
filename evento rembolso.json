@@ -1,0 +1,126 @@
+{
+    "url": "https://cedapi.onrender.com/webhook",
+    "signature": "dc879496348ff586aa103c9f8dbad29a8b438edb",
+    "order": {
+        "order_id": "be786abe-297f-42a8-a8c1-6e6d2b091ef3",
+        "order_ref": "jQ3EqZe",
+        "order_status": "refunded",
+        "product_type": "membership",
+        "payment_method": "pix",
+        "store_id": "Eo45TYH3MDXwPe1",
+        "payment_merchant_id": "be786abe297f42a8a8c16e6d2b091ef3",
+        "installments": 1,
+        "card_type": null,
+        "card_last4digits": null,
+        "card_rejection_reason": null,
+        "boleto_barcode": null,
+        "boleto_expiry_date": null,
+        "pix_code": null,
+        "pix_expiration": null,
+        "sale_type": "producer",
+        "created_at": "2025-05-17 05:45",
+        "updated_at": "2025-05-17 05:47",
+        "approved_date": "2025-05-17 05:46",
+        "refunded_at": "2025-05-17 05:48",
+        "webhook_event_type": "order_refunded",
+        "Product": {
+            "product_id": "a8387760-25d5-11f0-910f-b16ab90bbeea",
+            "product_name": "CED - CENTRO DE ENSINO DIGITAL"
+        },
+        "Customer": {
+            "full_name": "Yuri Rodrigues de Sousa",
+            "first_name": "Yuri",
+            "email": "jacareburra@hotmail.com",
+            "mobile": "+5561986660241",
+            "CPF": "10539354120",
+            "cnpj": null,
+            "ip": "2804:d59:a46e:3f00:1c9e:e952:6c45:4ea6",
+            "instagram": null
+        },
+        "Commissions": {
+            "charge_amount": 999,
+            "product_base_price": 999,
+            "product_base_price_currency": "BRL",
+            "kiwify_fee": 339,
+            "kiwify_fee_currency": "BRL",
+            "commissioned_stores": [
+                {
+                    "id": "7d35ed98-fd2c-405c-9e6a-897d1111ef7d",
+                    "type": "producer",
+                    "custom_name": "CED - CENTRO DE ENSINO DIGITAL",
+                    "email": "jacareburra@hotmail.com",
+                    "value": "660"
+                }
+            ],
+            "currency": "BRL",
+            "my_commission": 660,
+            "funds_status": "waiting",
+            "estimated_deposit_date": "2025-05-19T03:00:00.000Z",
+            "deposit_date": null
+        },
+        "TrackingParameters": {
+            "src": null,
+            "sck": null,
+            "utm_source": null,
+            "utm_medium": null,
+            "utm_campaign": null,
+            "utm_content": null,
+            "utm_term": null,
+            "s1": null,
+            "s2": null,
+            "s3": null
+        },
+        "checkout_link": "jU4gl7Q",
+        "Subscription": {
+            "start_date": "2025-05-17T08:45:30.695Z",
+            "next_payment": "2025-06-17T08:46:23.377Z",
+            "status": "canceled",
+            "plan": {
+                "id": "b8b89af9-bccc-491f-8bdb-64125e827641",
+                "name": "Inglês Fluente",
+                "frequency": "monthly",
+                "qty_charges": 0
+            },
+            "charges": {
+                "completed": [],
+                "future": [
+                    {
+                        "charge_date": "2025-06-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2025-07-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2025-08-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2025-09-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2025-10-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2025-11-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2025-12-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2026-01-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2026-02-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2026-03-17T08:46:23.377Z"
+                    },
+                    {
+                        "charge_date": "2026-04-17T08:46:23.377Z"
+                    }
+                ]
+            }
+        },
+        "subscription_id": "51de2d64-4c30-4ccd-a953-5d462e4eb2bb",
+        "access_url": null
+    }
+}
