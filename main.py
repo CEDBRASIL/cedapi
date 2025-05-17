@@ -228,30 +228,39 @@ def webhook():
             }), 200
 
         elif evento == "order_refunded":
-            customer = payload.get("Customer", {})
-            cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
-            if not cpf:
-                return jsonify({"error": "CPF não fornecido para o evento de reembolso."}), 400
+            # Extração do aluno_id
+            aluno_id = payload.get("order", {}).get("aluno_id")
+            if not aluno_id:
+                print("❌ ID do aluno não fornecido para o evento de reembolso.")
+                return jsonify({"error": "ID do aluno não fornecido para o evento de reembolso."}), 400
 
-            print(f"🔄 Processando reembolso para o CPF: {cpf}")
+            print(f"🔄 Processando reembolso para o ID do aluno: {aluno_id}")
 
             # Enviar requisição para deletar a conta do aluno
-            resp_deletar = requests.delete(
-                f"{OURO_BASE_URL}/alunos/{cpf}",
-                headers={"Authorization": f"Basic {BASIC_AUTH}"}
-            )
+            try:
+                resp_deletar = requests.delete(
+                    f"{OURO_BASE_URL}/alunos/{aluno_id}",
+                    headers={"Authorization": f"Basic {BASIC_AUTH}"}
+                )
 
-            if not resp_deletar.ok:
-                erro_msg = f"❌ ERRO AO DELETAR CONTA: {resp_deletar.text}\nCPF: {cpf}"
+                if not resp_deletar.ok:
+                    erro_msg = f"❌ ERRO AO DELETAR CONTA: {resp_deletar.text}\nID do aluno: {aluno_id}"
+                    print(erro_msg)
+                    enviar_log_whatsapp(erro_msg)
+                    return jsonify({"error": "Falha ao deletar conta do aluno", "detalhes": resp_deletar.text}), 500
+
+                print(f"✅ Conta do aluno com ID {aluno_id} deletada com sucesso.")
+                return jsonify({"message": "Conta do aluno deletada com sucesso."}), 200
+
+            except Exception as e:
+                erro_msg = f"❌ EXCEÇÃO AO DELETAR CONTA: {str(e)}\nID do aluno: {aluno_id}"
                 print(erro_msg)
                 enviar_log_whatsapp(erro_msg)
-                return jsonify({"error": "Falha ao deletar conta do aluno", "detalhes": resp_deletar.text}), 500
-
-            print(f"✅ Conta do aluno com CPF {cpf} deletada com sucesso.")
-            return jsonify({"message": "Conta do aluno deletada com sucesso."}), 200
+                return jsonify({"error": "Erro interno ao deletar conta", "detalhes": str(e)}), 500
 
         else:
             # Ignorar outros eventos
+            print(f"🔕 Evento ignorado: {evento}")
             return jsonify({"message": "Evento ignorado"}), 200
 
     except Exception as e:
