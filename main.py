@@ -3,6 +3,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import datetime
 import os
+import json
 
 app = Flask(__name__)
 
@@ -29,7 +30,8 @@ MAPEAMENTO_CURSOS = {
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
     "teste": [161, 201],
-    "Example plan": [161, 201]
+    "Example plan": [161, 201],
+    "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
@@ -37,6 +39,21 @@ ID_UNIDADE = 4158
 KEY = "e6fc583511b1b88c34bd2a2610248a8c"
 
 TOKEN_UNIDADE = None
+
+def enviar_log_discord(mensagem):
+    try:
+        url = "https://discord.com/api/webhooks/1373265105298653235/DwNCh-rD99gqJUuSnrwFW12cDEdAcn8H7SP4kucgc_He9ZZaqHNWmGO_qD_PZdf-U5Rq"
+        payload = {"content": mensagem}
+        headers = {"Content-Type": "application/json"}
+        resp = requests.post(url, data=json.dumps(payload), headers=headers)
+        if resp.status_code == 204:
+            print("✅ Log enviado ao Discord com sucesso.")
+        else:
+            print("❌ Falha ao enviar log para Discord:", resp.text)
+    except Exception as e:
+        print("❌ Erro ao enviar log para Discord:", str(e))
+
+# Atualizando chamadas de log para incluir envio ao Discord
 
 def enviar_log_whatsapp(mensagem):
     try:
@@ -49,6 +66,8 @@ def enviar_log_whatsapp(mensagem):
             print("❌ Falha ao enviar log para WhatsApp:", resp.text)
     except Exception as e:
         print("❌ Erro ao enviar log para WhatsApp:", str(e))
+    finally:
+        enviar_log_discord(mensagem)
 
 def obter_token_unidade():
     global TOKEN_UNIDADE
@@ -57,13 +76,17 @@ def obter_token_unidade():
         dados = resposta.json()
         if dados.get("status") == "true":
             TOKEN_UNIDADE = dados.get("data")["token"]
-            print("🔁 Token atualizado com sucesso!")
+            mensagem = "🔁 Token atualizado com sucesso!"
+            print(mensagem)
+            enviar_log_discord(mensagem)
             return TOKEN_UNIDADE
-        print("❌ Erro ao obter token:", dados)
-        enviar_log_whatsapp(f"❌ Erro ao obter token da unidade: {dados}")
+        mensagem = f"❌ Erro ao obter token: {dados}"
+        print(mensagem)
+        enviar_log_whatsapp(mensagem)
     except Exception as e:
-        print("❌ Exceção ao obter token:", str(e))
-        enviar_log_whatsapp(f"❌ Exceção ao obter token: {str(e)}")
+        mensagem = f"❌ Exceção ao obter token: {str(e)}"
+        print(mensagem)
+        enviar_log_whatsapp(mensagem)
     return None
 
 # Inicializa o token ao iniciar o app
@@ -71,10 +94,14 @@ obter_token_unidade()
 
 @app.before_request
 def log_request_info():
-    print("\n📥 Requisição recebida:")
-    print("🔗 URL completa:", request.url)
-    print("📍 Método:", request.method)
-    print("📦 Cabeçalhos:", dict(request.headers))
+    mensagem = (
+        f"\n📥 Requisição recebida:\n"
+        f"🔗 URL completa: {request.url}\n"
+        f"📍 Método: {request.method}\n"
+        f"📦 Cabeçalhos: {dict(request.headers)}"
+    )
+    print(mensagem)
+    enviar_log_discord(mensagem)
 
 @app.route('/secure', methods=['GET', 'HEAD'])
 def secure_check():
