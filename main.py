@@ -108,12 +108,80 @@ def secure_check():
     obter_token_unidade()
     return "🔐 Token atualizado com sucesso via /secure", 200
 
+def buscar_aluno_por_cpf(cpf):
+    try:
+        print(f"🔍 Buscando aluno com CPF: {cpf}")
+        resp = requests.get(
+            f"{OURO_BASE_URL}/alunos",
+            headers={"Authorization": f"Basic {BASIC_AUTH}"},
+            params={"cpf": cpf}
+        )
+
+        if not resp.ok:
+            print(f"❌ Falha ao buscar aluno: {resp.text}")
+            return None
+
+        alunos = resp.json().get("data", [])
+        if not alunos:
+            print("❌ Nenhum aluno encontrado com o CPF fornecido.")
+            return None
+
+        aluno_id = alunos[0].get("id")
+        print(f"✅ Aluno encontrado. ID: {aluno_id}")
+        return aluno_id
+
+    except Exception as e:
+        print(f"❌ Erro ao buscar aluno: {str(e)}")
+        return None
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
         print("\n🔔 Webhook recebido com sucesso")
         payload = request.json
         evento = payload.get("webhook_event_type")
+
+        if evento == "order_refunded":
+            customer = payload.get("Customer", {})
+            cpf = customer.get("CPF", "").replace(".", "").replace("-", "")
+
+            if not cpf:
+                erro_msg = "❌ CPF do aluno não encontrado no payload de reembolso."
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
+                return jsonify({"error": "CPF do aluno não encontrado."}), 400
+
+            aluno_id = buscar_aluno_por_cpf(cpf)
+            if not aluno_id:
+                erro_msg = "❌ ID do aluno não encontrado para o CPF fornecido."
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
+                return jsonify({"error": "ID do aluno não encontrado."}), 400
+
+            print(f"🗑️ Excluindo conta do aluno com ID: {aluno_id}")
+            resp_exclusao = requests.delete(
+                f"{OURO_BASE_URL}/alunos/{aluno_id}",
+                headers={"Authorization": f"Basic {BASIC_AUTH}"}
+            )
+
+            if not resp_exclusao.ok:
+                erro_msg = (
+                    f"❌ ERRO AO EXCLUIR ALUNO\n"
+                    f"Aluno ID: {aluno_id}\n"
+                    f"🔧 Detalhes: {resp_exclusao.text}"
+                )
+                print(erro_msg)
+                enviar_log_whatsapp(erro_msg)
+                enviar_log_discord(erro_msg)
+                return jsonify({"error": "Falha ao excluir aluno", "detalhes": resp_exclusao.text}), 500
+
+            msg_exclusao = f"✅ Conta do aluno com ID {aluno_id} excluída com sucesso."
+            print(msg_exclusao)
+            enviar_log_whatsapp(msg_exclusao)
+            enviar_log_discord(msg_exclusao)
+            return jsonify({"message": "Conta do aluno excluída com sucesso."}), 200
 
         if evento != "order_approved":
             return jsonify({"message": "Evento ignorado"}), 200
@@ -259,6 +327,7 @@ def webhook():
         erro_msg = f"❌ EXCEÇÃO NO PROCESSAMENTO: {str(e)}"
         print(erro_msg)
         enviar_log_whatsapp(erro_msg)
+        enviar_log_discord(erro_msg)
         return jsonify({"error": "Erro interno no servidor", "detalhes": str(e)}), 500
 
 if __name__ == '__main__':
