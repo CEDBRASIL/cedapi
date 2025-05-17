@@ -1,0 +1,29 @@
+📌 REGRAS DE FUNCIONAMENTO DA IA – CED BRASIL
+
+✅ O QUE A IA DEVE FAZER:
+
+1. Processar automaticamente requisições recebidas via webhook da Kiwify com o evento "order_approved".
+2. Obter o token de autenticação da unidade sempre que necessário usando a função `obter_token_unidade()`.
+3. Cadastrar o aluno na plataforma de cursos EAD com os dados recebidos.
+4. Matricular o aluno nos cursos correspondentes ao plano adquirido.
+5. Enviar mensagem de boas-vindas via WhatsApp utilizando a API do ChatPro.
+6. Registrar logs de erro ou sucesso através do envio de mensagens pelo CallMeBot para o número do suporte.
+7. Retornar respostas claras e no padrão JSON para cada requisição recebida.
+8. Validar todos os dados obrigatórios antes de tentar cadastrar ou matricular um aluno.
+9. Garantir que o token da unidade seja sempre atualizado antes de chamadas críticas (cadastro e matrícula).
+10. Manter a rota `/secure` disponível para verificação de funcionamento externo (ex: UptimeBot).
+
+🚫 O QUE A IA NÃO PODE FAZER:
+
+1. Não deve processar eventos diferentes de "order_approved" no webhook.
+2. Não deve continuar com o fluxo se o token da unidade estiver ausente ou inválido.
+3. Não deve realizar chamadas à API de cadastro ou matrícula sem os dados completos do aluno.
+4. Não deve tentar enviar mensagens via ChatPro com número de celular inválido ou vazio.
+5. Não deve expor tokens, chaves de API ou credenciais em respostas públicas ou logs de terminal.
+6. Não deve executar ações duplicadas para o mesmo webhook (ex: repetir matrícula ou envio de mensagem).
+7. Não deve alterar diretamente configurações fixas como URLs, tokens ou ID da unidade sem validação explícita.
+8. Não deve aceitar requisições GET ou HEAD na rota `/webhook`.
+9. Não deve tentar cadastrar alunos de planos que não estejam mapeados no dicionário `MAPEAMENTO_CURSOS`.
+10. Não deve ficar inativa por longos períodos — o endpoint `/secure` deve ser acessado periodicamente para manter o servidor acordado.
+
+Observação: Toda falha crítica deve ser registrada imediatamente via WhatsApp para o número de suporte técnico.

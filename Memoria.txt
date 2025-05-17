@@ -1,0 +1,39 @@
+main.py  
+Arquivo principal da aplicação Flask responsável por processar os eventos do webhook da Kiwify e executar ações como cadastro e matrícula de alunos.  
+Contém:  
+- Configurações fixas: URLs da API do sistema EAD, autenticação Basic, instância e token do ChatPro, dados da CallMeBot e mapeamento de planos para cursos.  
+- Funções auxiliares:
+  - `obter_token_unidade()`: Obtém o token da unidade via API utilizando autenticação básica.
+  - `enviar_log_whatsapp(msg)`: Envia mensagens de log via CallMeBot para WhatsApp do suporte.
+- Rotas:
+  - `/secure`: Verificação simples de funcionamento.
+  - `/webhook`: Endpoint principal para receber notificações de venda aprovadas da Kiwify e realizar:
+    - Cadastro do aluno no EAD.
+    - Matrícula nos cursos conforme o plano adquirido.
+    - Envio de mensagem de boas-vindas via WhatsApp usando ChatPro.
+
+Finalidade: Gerenciar toda a lógica de integração com a Kiwify e os sistemas externos (EAD, ChatPro, CallMeBot), garantindo a automação dos processos após a venda.
+
+---
+
+mainquefunciona.py  
+Este arquivo é o main.py porem ele funciona normalmente!  
+
+Finalidade: Backup ou versão de contingência para garantir funcionamento do sistema.
+
+---
+
+API Ouro Moderno - EAD - Versão 2.0.postman_collection.json  
+Coleção de requisições Postman para testes e documentação da API do sistema EAD.  
+Inclui:
+- Endpoints de autenticação.
+- Cadastro de aluno.
+- Matrícula.
+- Consultas de unidades e alunos.
+- Cabeçalhos e bodies prontos para envio.
+
+Finalidade: Facilitar testes manuais e compreensão da API por desenvolvedores e integradores.
+
+---
+
+Observação: A integração foi construída com foco na automação total do fluxo de venda e matrícula via webhook da Kiwify, considerando validação de token, mapeamento de cursos e comunicação com o aluno via WhatsApp.

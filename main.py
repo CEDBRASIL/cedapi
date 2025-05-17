@@ -28,7 +28,7 @@ MAPEAMENTO_CURSOS = {
     "Operador de Micro": [130, 599, 161, 160, 162],
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
-    "teste": [161, 201],
+    "teste": [130, 599, 163, 160, 161, 162, 222],
     "Example plan": [161, 201],
     "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222]
 }
@@ -200,7 +200,7 @@ def webhook():
             "🌐 *Portal do aluno:* https://ead.cedbrasilia.com.br\n"
             "📲 *App Android:* https://play.google.com/store/apps/details?id=br.com.om.app&hl=pt_BR\n"
             "📱 *App iOS:* https://apps.apple.com/br/app/meu-app-de-cursos/id1581898914\n\n"
-            f"📞 *Suporte:* {SUPORTE_WHATSAPP}"
+            f"Qualquer Duvida é só perguntar :)"
         )
 
         numero_whatsapp = "55" + ''.join(filter(str.isdigit, celular))[-11:]
