@@ -32,7 +32,8 @@ MAPEAMENTO_CURSOS = {
     "teste": [161, 201],
     "Example plan": [161, 201],
     "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222],
-    "Inglês Kids": [266]
+    "Inglês Kids": [266],
+    "Informática Essencial": [130, 599, 161, 160, 162]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
