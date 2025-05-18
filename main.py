@@ -26,7 +26,7 @@ MAPEAMENTO_CURSOS = {
     "Analista de Tecnologia da Informação (TI)": [590, 176, 239, 203],
     "Administração": [129, 198, 156, 154],
     "Inglês Fluente": [263, 280, 281],
-    "Operador de Micro": [864, 296, 304, 312, 688, 288, 992],
+    "Operador de Micro": [773, 599, 163, 278, 160, 161, 162],
     "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
     "teste": [161, 201],
