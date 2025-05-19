@@ -26,14 +26,13 @@ MAPEAMENTO_CURSOS = {
     "Analista de Tecnologia da Informação (TI)": [590, 176, 239, 203],
     "Administração": [129, 198, 156, 154],
     "Inglês Fluente": [263, 280, 281],
-    "Operador de Micro": [773, 599, 163, 278, 160, 161, 162],
-    "Inteligência Artificial": [619, 734, 836],
     "Marketing Digital": [734, 236, 441, 199, 780],
     "teste": [161, 201],
     "Example plan": [161, 201],
     "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222],
     "Inglês Kids": [266],
-    "Informática Essencial": [864, 296, 304, 312, 688, 288, 992]
+    "Informática Essencial": [130, 599, 161, 160, 162],
+    "Especialista em Marketing e Vendas 360º": [123, 199, 202, 264, 441, 780, 828, 829, 236, 734]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
