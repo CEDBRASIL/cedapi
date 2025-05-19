@@ -32,6 +32,7 @@ MAPEAMENTO_CURSOS = {
     "Operador de micro/Maria": [130, 599, 163, 160, 161, 162, 222],
     "Inglês Kids": [266],
     "Informática Essencial": [130, 599, 161, 160, 162],
+    "Operador de Micro": [130, 599, 161, 160, 162],
     "Especialista em Marketing e Vendas 360º": [123, 199, 202, 264, 441, 780, 828, 829, 236, 734]
 }
 
