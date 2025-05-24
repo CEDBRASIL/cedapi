@@ -13,8 +13,8 @@ BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
 SUPORTE_WHATSAPP = "61981969018"
 DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
 
-CHATPRO_TOKEN = "566fa7beb56fc88e10a0176bbd27f639"
-CHATPRO_INSTANCIA = "chatpro-xcpvtq83bk"
+CHATPRO_TOKEN = "61de03bbdfbfca09d33ca6c2ec9c73f9"
+CHATPRO_INSTANCIA = "chatpro-h9bsk4dljx"
 CHATPRO_URL = f"https://v5.chatpro.com.br/{CHATPRO_INSTANCIA}/api/v1/send_message"
 
 CALLMEBOT_APIKEY = "2712587"
