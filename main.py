@@ -33,7 +33,8 @@ MAPEAMENTO_CURSOS = {
     "Inglês Kids": [266],
     "Informática Essencial": [130, 599, 161, 160, 162],
     "Operador de Micro": [130, 599, 161, 160, 162],
-    "Especialista em Marketing e Vendas 360º": [123, 199, 202, 264, 441, 780, 828, 829, 236, 734]
+    "Especialista em Marketing e Vendas 360º": [123, 199, 202, 264, 441, 780, 828, 829, 236, 734],
+    "teste": [123, 199, 202, 264, 441, 780, 828, 829, 236, 734]
 }
 
 API_URL = "https://meuappdecursos.com.br/ws/v2/unidades/token/"
