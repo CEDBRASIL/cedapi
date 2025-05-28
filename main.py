@@ -8,17 +8,19 @@ import json
 app = Flask(__name__)
 
 # CONFIGURAÇÕES FIXAS
-OURO_BASE_URL = "https://meuappdecursos.com.br/ws/v2"
-BASIC_AUTH = "ZTZmYzU4MzUxMWIxYjg4YzM0YmQyYTI2MTAyNDhhOGM6"
-SUPORTE_WHATSAPP = "61981969018"
-DATA_FIM = (datetime.datetime.now() + datetime.timedelta(days=180)).strftime("%Y-%m-%d")
-
-CHATPRO_TOKEN = "61de03bbdfbfca09d33ca6c2ec9c73f9"
-CHATPRO_INSTANCIA = "chatpro-h9bsk4dljx"
+OURO_BASE_URL = os.getenv("OURO_BASE_URL")
+BASIC_AUTH = os.getenv("BASIC_AUTH")
+SUPORTE_WHATSAPP = os.getenv("SUPORTE_WHATSAPP")
+CHATPRO_TOKEN = os.getenv("CHATPRO_TOKEN")
+CHATPRO_INSTANCIA = os.getenv("CHATPRO_INSTANCIA")
 CHATPRO_URL = f"https://v5.chatpro.com.br/{CHATPRO_INSTANCIA}/api/v1/send_message"
+CALLMEBOT_APIKEY = os.getenv("CALLMEBOT_APIKEY")
+CALLMEBOT_PHONE = os.getenv("CALLMEBOT_PHONE")
+API_URL = os.getenv("API_URL")
+ID_UNIDADE = int(os.getenv("ID_UNIDADE"))
+KEY = os.getenv("KEY")
+DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 
-CALLMEBOT_APIKEY = "2712587"
-CALLMEBOT_PHONE = "556186660241"
 
 MAPEAMENTO_CURSOS = {
     "Excel PRO": [161, 197, 201],
